@@ -18,23 +18,25 @@ app.get("/", (req, res) => {
   res.send("API Running.");
 });
 
-app.post("/locationSuggestions", async (req, res) => {
-  const location = req.body.location;
+app.get("/locationSuggestions/:location", async (req, res) => {
+  const location = req.params.location;
 
-  const result = await fetch(
-    "https://maps.googleapis.com/maps/api/place/autocomplete/json?input=" +
-      location +
-      "&components=country:lb" +
-      "&key=" +
-      GOOGLE_MAPS_KEY
-  ).then((res) => res.json());
+  if (location === "") res.json({ result: [] });
+  else {
+    const result = await fetch(
+      "https://maps.googleapis.com/maps/api/place/autocomplete/json?input=" +
+        location +
+        "&components=country:lb" +
+        "&key=" +
+        GOOGLE_MAPS_KEY
+    ).then((res) => res.json());
 
-  console.log(`Successfully fetched location suggestions for ${location}`);
-  res.json({ result: result.predictions });
+    res.json({ result: result.predictions });
+  }
 });
 
-app.post("/locationDetails", async (req, res) => {
-  const place_id = req.body.place_id;
+app.get("/locationDetails/:place_id", async (req, res) => {
+  const place_id = req.params.place_id;
 
   const result = await fetch(
     "https://maps.googleapis.com/maps/api/place/details/json?place_id=" +
@@ -43,14 +45,13 @@ app.post("/locationDetails", async (req, res) => {
       GOOGLE_MAPS_KEY
   ).then((res) => res.json());
 
-  console.log(`Successfully fetched location details for ${place_id}`);
   res.json({ result: result.result.geometry.location });
 });
 
-app.post("/possibleRoutes", async (req, res) => {
-  // const place_id = req.body.place_id
-  let start_id = req.body.start_id || "ChIJ-Ylp-M0QHxURZtOZgiymDpI";
-  let destination_id = req.body.destination_id || "ChIJi7oiX0hbHxURmrRW3kLWd7c";
+app.get("/possibleRoutes", async (req, res) => {
+  let start_id = req.query.start_id || "ChIJ-Ylp-M0QHxURZtOZgiymDpI";
+  let destination_id =
+    req.query.destination_id || "ChIJi7oiX0hbHxURmrRW3kLWd7c";
 
   const url =
     "https://maps.googleapis.com/maps/api/directions/json?origin=place_id:" +
@@ -62,6 +63,5 @@ app.post("/possibleRoutes", async (req, res) => {
     GOOGLE_MAPS_KEY;
   const result = await fetch(url).then((res) => res.json());
 
-  console.log(`Successfully fetched possible routes for ${place_id}`);
   res.json({ result: result });
 });
