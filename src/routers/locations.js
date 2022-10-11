@@ -19,7 +19,7 @@ router.get("/suggestions/:location", async (req, res) => {
         GOOGLE_MAPS_KEY
     ).then((res) => res.json());
 
-    res.json({ result: result.predictions });
+    res.json(result.predictions);
   }
 });
 
@@ -33,7 +33,7 @@ router.get("/details/:place_id", async (req, res) => {
       GOOGLE_MAPS_KEY
   ).then((res) => res.json());
 
-  res.json({ result: result.result.geometry.location });
+  res.json(result.result.geometry.location);
 });
 
 router.get("/possibleRoutes", async (req, res) => {
@@ -53,7 +53,7 @@ router.get("/possibleRoutes", async (req, res) => {
 
   const result = await fetch(url).then((res) => res.json());
 
-  res.json({ result: result });
+  res.json(result);
 });
 
 export default router;
