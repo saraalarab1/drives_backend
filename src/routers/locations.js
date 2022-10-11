@@ -7,7 +7,7 @@ const router = Router();
 const GOOGLE_MAPS_KEY = process.env.MAPS_API_KEY;
 
 router.get("/suggestions/:location", async (req, res) => {
-  const location = req.params.location;
+  const { location } = req.params;
 
   if (location === "") res.json({ result: [] });
   else {
@@ -24,7 +24,7 @@ router.get("/suggestions/:location", async (req, res) => {
 });
 
 router.get("/details/:place_id", async (req, res) => {
-  const place_id = req.params.place_id;
+  const { place_id } = req.params;
 
   const result = await fetch(
     "https://maps.googleapis.com/maps/api/place/details/json?place_id=" +
@@ -37,9 +37,10 @@ router.get("/details/:place_id", async (req, res) => {
 });
 
 router.get("/possibleRoutes", async (req, res) => {
-  let start_id = req.query.start_id || "ChIJ-Ylp-M0QHxURZtOZgiymDpI";
-  let destination_id =
-    req.query.destination_id || "ChIJi7oiX0hbHxURmrRW3kLWd7c";
+  const {
+    start_id = "ChIJ-Ylp-M0QHxURZtOZgiymDpI",
+    destination_id = "ChIJi7oiX0hbHxURmrRW3kLWd7c",
+  } = req.query;
 
   const url =
     "https://maps.googleapis.com/maps/api/directions/json?origin=place_id:" +
@@ -49,6 +50,7 @@ router.get("/possibleRoutes", async (req, res) => {
     "&alternatives=true" +
     "&key=" +
     GOOGLE_MAPS_KEY;
+
   const result = await fetch(url).then((res) => res.json());
 
   res.json({ result: result });
