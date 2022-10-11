@@ -21,6 +21,13 @@ app.get("/", (req, res) => {
 app.get("/locationSuggestions/:location", async (req, res) => {
   const location = req.params.location;
 
+<<<<<<< HEAD
+    const result = await fetch("https://maps.googleapis.com/maps/api/place/autocomplete/json?input=" +
+        location + "&components=country:lb" + "&key=" + GOOGLE_MAPS_KEY)
+        .then(res => res.json())
+    res.json({ result: result.predictions })
+})
+=======
   if (location === "") res.json({ result: [] });
   else {
     const result = await fetch(
@@ -34,6 +41,7 @@ app.get("/locationSuggestions/:location", async (req, res) => {
     res.json({ result: result.predictions });
   }
 });
+>>>>>>> a6c225c15e16c8bd1c1a459c1e3f687559ca1ad4
 
 app.get("/locationDetails/:place_id", async (req, res) => {
   const place_id = req.params.place_id;
