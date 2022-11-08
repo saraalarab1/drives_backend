@@ -5,6 +5,8 @@ export const users = [
     lastName: "User",
     email: "generic.user@lau.edu",
     rating: 4.6,
+    completedRides: 2, // Should be fetched from SQL (join or union)
+    numberOfReviews: 4
   },
   {
     id: 2,
@@ -12,6 +14,8 @@ export const users = [
     lastName: "Jalloul",
     email: "khaled.jalloul@lau.edu",
     rating: 3.7,
+    completedRides: 0,
+    numberOfReviews: 0
   },
   {
     id: 3,
@@ -19,6 +23,8 @@ export const users = [
     lastName: "Youness",
     email: "hadi.youness@lau.edu",
     rating: 4.2,
+    completedRides: 1,
+    numberOfReviews: 2
   },
   {
     id: 4,
@@ -26,6 +32,8 @@ export const users = [
     lastName: "Al Arab",
     email: "sara.alarab@lau.edu",
     rating: 4,
+    completedRides: 2,
+    numberOfReviews: 3
   },
 ];
 
@@ -38,7 +46,7 @@ export const rides = [
     destinationCoordinates: { latitude: 33.7821927, longitude: 35.5312037 },
     destinationLocation: "Bchamoun",
     numberOfRiders: 3,
-    pricePerRider: 30000,
+    pricePerRider: 1,
     driverID: 3,
   },
   {
@@ -49,7 +57,7 @@ export const rides = [
     destinationCoordinates: { latitude: 34.1155614, longitude: 35.6744347 },
     destinationLocation: "LAU Byblos",
     numberOfRiders: 4,
-    pricePerRider: 20000,
+    pricePerRider: 2,
     driverID: 4,
   },
   {
@@ -60,7 +68,7 @@ export const rides = [
     destinationCoordinates: { latitude: 33.7821927, longitude: 35.5312037 },
     destinationLocation: "Mazraa, Beirut",
     numberOfRiders: 3,
-    pricePerRider: 30000,
+    pricePerRider: 1.5,
     driverID: 1,
   },
   {
@@ -71,9 +79,20 @@ export const rides = [
     destinationCoordinates: { latitude: 33.7821927, longitude: 35.5312037 },
     destinationLocation: "LAU Beirut",
     numberOfRiders: 3,
-    pricePerRider: 30000,
+    pricePerRider: 2,
     driverID: 1,
   },
+  {
+    id: 5,
+    dateOfDeparture: new Date(),
+    departureCoordinates: { latitude: 34.1155614, longitude: 35.6744347 },
+    departureLocation: "LAU Byblos",
+    destinationCoordinates: { latitude: 33.7821927, longitude: 35.5312037 },
+    destinationLocation: "Bchamoun",
+    numberOfRiders: 3,
+    pricePerRider: 1,
+    driverID: 4,
+  }
 ];
 
 export const stopRequests = [
