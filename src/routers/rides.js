@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { rides, stopRequests } from "../utilities/mock-data.js";
 import createConnection from "../../config/databaseConfig.js";
+import searchForDrivers from "../utilities/searchForDrivers.js";
 
 var connection = createConnection();
 const router = Router();
@@ -66,6 +67,21 @@ router.get("/", (req, res) => {
                 let rides = results;
                 if (rides.length > 0) res.status(200).json(rides);
                 else res.status(404).send("No Rides Found.");
+  const { driverID, location } = req.query;
+  let output = rides;
+  if (driverID)
+    output = output.filter(
+      (stopRequest) => stopRequest.driverID === parseInt(driverID)
+    );
+  if (location) {
+    try {
+      const latLng = JSON.parse(location);
+      output = searchForDrivers(latLng[0], latLng[1]);
+    } catch (e) {
+      console.log(e);
+      output = "Invalid location format.";
+    }
+  }
 
             } else {
                 console.log(error);
