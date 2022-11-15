@@ -21,7 +21,10 @@
     "jsonwebtoken": "^8.5.1",
     "mysql2": "^2.3.3",
     "node-fetch": "^3.2.10",
-    "sequelize": "^6.25.6"
+    "sequelize": "^6.25.6",
+    "mysql": "^2.18.1",
+    "require": "^2.4.20",
+    "sql": "^0.78.0"
   },
   "devDependencies": {
     "husky": "^8.0.1",
