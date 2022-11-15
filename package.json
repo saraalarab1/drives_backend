@@ -13,6 +13,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@mapbox/polyline": "^1.1.1",
     "dotenv": "^16.0.2",
     "express": "^4.18.1",
     "node-fetch": "^3.2.10"

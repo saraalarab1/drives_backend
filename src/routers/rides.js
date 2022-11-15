@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { rides, stopRequests } from "../utilities/mock-data.js";
+import searchForDrivers from "../utilities/searchForDrivers.js";
 
 const router = Router();
 
@@ -32,12 +33,21 @@ router.get("/stopRequests/:id", (req, res) => {
 });
 
 router.get("/", (req, res) => {
-  const { driverID } = req.query;
+  const { driverID, location } = req.query;
   let output = rides;
   if (driverID)
     output = output.filter(
       (stopRequest) => stopRequest.driverID === parseInt(driverID)
     );
+  if (location) {
+    try {
+      const latLng = JSON.parse(location);
+      output = searchForDrivers(latLng[0], latLng[1]);
+    } catch (e) {
+      console.log(e);
+      output = "Invalid location format.";
+    }
+  }
 
   res.json(output);
 });
