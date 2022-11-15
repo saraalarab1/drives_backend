@@ -7,7 +7,6 @@ import getIpAddress from "./src/utilities/get-ip.js";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import cors from "cors";
-import db from "./src/config/database.js";
 dotenv.config();
 import createConnection from "./config/databaseConfig.js";
 
