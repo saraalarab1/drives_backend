@@ -23,17 +23,20 @@ router.get("/suggestions/:location", async (req, res) => {
   }
 });
 
-router.get("/details/:place_id", async (req, res) => {
-  const { place_id } = req.params;
+router.get("/coordinates/:address", async (req, res) => {
+  const { address } = req.params;
+  try {
+    const result = await fetch(
+      "https://maps.googleapis.com/maps/api/geocode/json?address=" +
+        address +
+        "&key=" +
+        GOOGLE_MAPS_KEY
+    ).then((res) => res.json());
 
-  const result = await fetch(
-    "https://maps.googleapis.com/maps/api/place/details/json?place_id=" +
-      place_id +
-      "&key=" +
-      GOOGLE_MAPS_KEY
-  ).then((res) => res.json());
-
-  res.json(result.result.geometry.location);
+    res.json(result.results[0].geometry.location);
+  } catch (e) {
+    res.status(400).json("Invalid location");
+  }
 });
 
 router.get("/possibleRoutes", async (req, res) => {

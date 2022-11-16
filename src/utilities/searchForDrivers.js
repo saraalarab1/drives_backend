@@ -1,7 +1,6 @@
 import Polyline from "@mapbox/polyline";
-import { rides } from "./mock-data.js";
 
-const searchForDrivers = (latitude, longitude) => {
+const searchForDrivers = (latitude, longitude, rides) => {
   const [latTolerance, lngTolerance] = [0.05 / 2, 0.055 / 2];
 
   const output = rides.filter(({ route }) => {

@@ -21,12 +21,3 @@ app.get("/", (req, res) => {
 app.use("/users", usersRouter);
 app.use("/locations", locationsRouter);
 app.use("/rides", ridesRouter)
-
-
-// connection.query('select * from student', function(error, results) {
-//   if (results) {
-//       console.log(results);
-//   } else {
-//       console.log(error);
-//   }
-// });
