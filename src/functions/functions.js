@@ -31,7 +31,6 @@ export function fetchData(par) {
     var attributes = [];
     var values = [];
     for (const [key, value] of Object.entries(par)) {
-        console.log(key, value);
         attributes.push(key);
         values.push(value);
     }
