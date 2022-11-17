@@ -58,6 +58,25 @@ router.get("/coordinates/:address", async (req, res) => {
   }
 });
 
+router.get("/nameFromCoords/:coordinates", async (req, res) => {
+  const { coordinates } = req.params;
+  try {
+    const { latitude, longitude } = JSON.parse(coordinates);
+    const result = await fetch(
+      "https://maps.googleapis.com/maps/api/place/nearbysearch/json?radius=1000&location=" +
+        latitude +
+        "," +
+        longitude +
+        "&key=" +
+        GOOGLE_MAPS_KEY
+    ).then((res) => res.json());
+
+    res.json(result.results[0].name);
+  } catch (e) {
+    res.status(400).json("Invalid location");
+  }
+});
+
 router.get("/possibleRoutes", async (req, res) => {
   const {
     start_id = "ChIJ-Ylp-M0QHxURZtOZgiymDpI",
