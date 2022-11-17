@@ -34,7 +34,7 @@ router.get("/stopRequests/:id", (req, res) => {
       if (stopRequest.length > 0) res.status(200).json(stopRequest.pop());
       else res.status(404).send("Stop request not found.");
     } else {
-      console.log(error);
+      res.status(400).send(error);
     }
   });
 });
@@ -76,6 +76,7 @@ router.get("/", (req, res) => {
         } else res.status(200).send([]);
       } else {
         console.log(error);
+        res.status(400).send(error);
       }
     }
   );
