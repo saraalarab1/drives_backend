@@ -7,9 +7,13 @@ import {
   generateCreateQuery,
   generateDeleteQuery,
 } from "../functions/functions.js";
+import fetch from "node-fetch";
+import dotenv from "dotenv";
 
+dotenv.config();
 var connection = createConnection();
 const router = Router();
+const GOOGLE_MAPS_KEY = process.env.MAPS_API_KEY;
 
 router.get("/stopRequests", (req, res) => {
   const { rideID, studentID } = req.query;
@@ -92,6 +96,7 @@ router.get("/:id", (req, res) => {
     if (results) {
       if (results.length > 0) {
         let ride = results.pop();
+        console.log(ride);
         ride = {
           ...ride,
           departureCoordinates: JSON.parse(ride.departureCoordinates),
@@ -105,7 +110,7 @@ router.get("/:id", (req, res) => {
   });
 });
 
-router.post("/", (req, res) => {
+router.post("/", async (req, res) => {
   var par = req.body;
   const now = new Date();
   const rideDetails = {
@@ -113,16 +118,55 @@ router.post("/", (req, res) => {
     dateOfCreation: now.toISOString().slice(0, 10),
     timeOfCreation: now.toLocaleTimeString().split(" ")[0],
   };
-  var data = fetchData(rideDetails);
-  const query = generateCreateQuery(data[0], [data[1]], "RIDE");
-  connection.query(query, function (error, results) {
-    if (results) {
-      console.log(results);
-    } else {
-      console.error(error);
+
+  var store = false;
+  if (par.route) {
+    store = true;
+  } else {
+    const url =
+      "https://maps.googleapis.com/maps/api/directions/json?origin=" +
+      `${JSON.parse(rideDetails.departureCoordinates).latitude},${
+        JSON.parse(rideDetails.departureCoordinates).longitude
+      }` +
+      "&destination=" +
+      `${JSON.parse(rideDetails.destinationCoordinates).latitude},${
+        JSON.parse(rideDetails.destinationCoordinates).longitude
+      }` +
+      "&alternatives=true" +
+      "&key=" +
+      GOOGLE_MAPS_KEY;
+
+    const result = await fetch(url).then(async (res) => {
+      const data = await res.json();
+      if (data.status === "NOT_FOUND") return undefined;
+      else return data.routes.map((route) => route.overview_polyline.points);
+    });
+    if (!result) res.status(400).json("No route found.");
+    else {
+      if (result.length === 1) {
+        rideDetails.route = result[0];
+        store = true;
+      } else
+        res
+          .status(200)
+          .json({ status: "REQUIRE_ROUTE_SELECTION", content: result });
     }
-  });
-  res.status(200).json("Created a ride");
+  }
+  if (store) {
+    console.log(rideDetails);
+    var data = fetchData(rideDetails);
+    const query = generateCreateQuery(data[0], [data[1]], "RIDE");
+    connection.query(query, function (error, results) {
+      if (results) {
+        res.status(201).json({ status: "SUCCESS" });
+      } else {
+        console.error(error);
+        res
+          .status(400)
+          .json({ status: "FAILED", content: "Failed to create ride." });
+      }
+    });
+  }
 });
 
 router.post("/stoprequests", (req, res) => {
@@ -136,6 +180,7 @@ router.post("/stoprequests", (req, res) => {
   });
   res.status(200).json("request ride");
 });
+
 router.delete("/:id", (req, res) => {
   var id = req.params.id;
   var query = generateDeleteQuery(id, "ID", "RIDE");
