@@ -3,6 +3,7 @@ import locationsRouter from "./src/routers/locations.js";
 import ridesRouter from "./src/routers/rides.js";
 import usersRouter from "./src/routers/users.js";
 import authenticationRouter from "./src/routers/authentication.js";
+import reviewsRouter from './src/routers/reviews.js';
 import getIpAddress from "./src/utilities/get-ip.js";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
@@ -30,6 +31,7 @@ app.use("/users", usersRouter);
 app.use("/locations", locationsRouter);
 app.use("/rides", ridesRouter)
 app.use("/authentication", authenticationRouter)
+app.use("/reviews", reviewsRouter)
 
 
 // connection.query('select * from student', function(error, results) {

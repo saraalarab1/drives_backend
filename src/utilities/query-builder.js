@@ -5,7 +5,8 @@ const buildQueryConditions = (...args) => {
     if (!arg[1]) return;
     if (!output.includes("WHERE")) output = output.concat(" WHERE ");
     else output = output.concat(" AND ");
-    output = output.concat(`${arg[0]} = '${arg[1]}'`);
+    if (arg[1].length ==2) output=output.concat(`${arg[0]} BETWEEN ${arg[1][0]} AND ${arg[1][1]}`);
+    else  output = output.concat(`${arg[0]} = '${arg[1]}'`);
   });
   return output;
 };
