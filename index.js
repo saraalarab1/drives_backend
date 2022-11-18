@@ -2,6 +2,7 @@ import express from "express";
 import locationsRouter from "./src/routers/locations.js";
 import ridesRouter from "./src/routers/rides.js";
 import usersRouter from "./src/routers/users.js";
+import notificationRouter from './src/routers/notifications.js';
 import authenticationRouter from "./src/routers/authentication.js";
 import getIpAddress from "./src/utilities/get-ip.js";
 import dotenv from "dotenv";
@@ -30,6 +31,7 @@ app.use("/users", usersRouter);
 app.use("/locations", locationsRouter);
 app.use("/rides", ridesRouter)
 app.use("/authentication", authenticationRouter)
+app.use("/notifications", notificationRouter)
 
 
 // connection.query('select * from student', function(error, results) {

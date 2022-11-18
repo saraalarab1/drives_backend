@@ -1,6 +1,5 @@
 import { Router } from "express";
 import { getUsers, Register, Login, Logout, getCampuses, getUniversities } from "../controllers/users.js";
-
 const router = Router();
 
 router.get('/', getUsers);
