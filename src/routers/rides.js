@@ -11,77 +11,66 @@ import {
 var connection = createConnection();
 const router = Router();
 
-router.get("/stopRequests", (req, res) => {
-  const { rideID, studentID } = req.query;
-  var queryConditions = buildQueryConditions(
-    ["rideID", rideID],
-    ["studentID", studentID]
-  );
-  connection.query(
-    `SELECT * FROM STOPREQUEST${queryConditions};`,
-    function (error, results) {
-      if (results) {
-        let output = results;
-        res.json(output);
-      } else {
-        console.error(error);
-      }
-    }
-  );
-});
-
-router.get("/stopRequests/:id", (req, res) => {
-  const id = parseInt(req.params.id);
-  const query = `SELECT * FROM STOPREQUEST WHERE id = ${id}`;
-  connection.query(`${query};`, function (error, results) {
-    if (results) {
-      let stopRequest = results;
-      if (stopRequest.length > 0) res.status(200).json(stopRequest.pop());
-      else res.status(404).send("Stop request not found.");
-    } else console.error(error);
-  });
-});
-
 router.get("/", (req, res) => {
   const {
-    driverID,
-    departureCoordinates,
-    destinationCoordinates,
-    pickupCoordinates,
+      driverID,
+      departureCoordinates,
+      destinationCoordinates,
+      pickupCoordinates,
+      minPrice,
+      maxPrice
   } = req.query;
 
   var queryConditions = buildQueryConditions(
-    ["studentID", driverID],
-    ["departureCoordinates", departureCoordinates],
-    ["destinationCoordinates", destinationCoordinates]
+      ["studentID", driverID], ["departureCoordinates", departureCoordinates], ["destinationCoordinates", destinationCoordinates], ["price",[minPrice,maxPrice]]
   );
 
-  connection.query(
-    `SELECT * FROM RIDE${queryConditions};`,
-    function (error, results) {
-      if (results) {
-        if (results.length > 0) {
-          let rides = results.map((ride) => ({
-            ...ride,
-            departureCoordinates: JSON.parse(ride.departureCoordinates),
-            destinationCoordinates: JSON.parse(ride.destinationCoordinates),
-          }));
-          if (pickupCoordinates) {
-            try {
-              const { latitude, longitude } = JSON.parse(pickupCoordinates);
-              res
-                .status(200)
-                .json(searchForDrivers(latitude, longitude, rides));
-            } catch (e) {
-              console.error(e);
-            }
-          } else res.status(200).json(rides);
-        } else res.status(200).send([]);
-      } else {
-        console.error(error);
-      }
+connection.query(
+  `SELECT * FROM RIDE${queryConditions};`,
+  function (error, results) {
+    if (results) {
+      if (results.length > 0) {
+        let rides = results.map((ride) => ({
+          ...ride,
+          departureCoordinates: JSON.parse(ride.departureCoordinates),
+          destinationCoordinates: JSON.parse(ride.destinationCoordinates),
+        }));
+        if (pickupCoordinates) {
+          try {
+            const { latitude, longitude } = JSON.parse(pickupCoordinates);
+            res
+              .status(200)
+              .json(searchForDrivers(latitude, longitude, rides));
+          } catch (e) {
+            console.error(e);
+          }
+        } else res.status(200).json(rides);
+      } else res.status(200).send([]);
+    } else {
+      console.error(error);
     }
-  );
+  }
+);
+});
+
+router.post("/", (req, res) => {
+  var par = req.body;
+  const now = new Date();
+  const rideDetails = {
+    ...par,
+    dateOfCreation: now.toISOString().slice(0, 10),
+    timeOfCreation: now.toLocaleTimeString().split(" ")[0],
+  };
+  var data = fetchData(rideDetails);
+  const query = generateCreateQuery(data[0], [data[1]], "RIDE");
+  connection.query(query, function (error, results) {
+    if (results) {
+      console.log(results);
+    } else {
+      console.error(error);
+    }
+  });
+  res.status(200).json("Created a ride");
 });
 
 router.get("/:id", (req, res) => {
@@ -105,24 +94,34 @@ router.get("/:id", (req, res) => {
   });
 });
 
-router.post("/", (req, res) => {
-  var par = req.body;
-  const now = new Date();
-  const rideDetails = {
-    ...par,
-    dateOfCreation: now.toISOString().slice(0, 10),
-    timeOfCreation: now.toLocaleTimeString().split(" ")[0],
-  };
-  var data = fetchData(rideDetails);
-  const query = generateCreateQuery(data[0], [data[1]], "RIDE");
+router.delete("/:id", (req, res) => {
+  var id = req.params.id;
+  var query = generateDeleteQuery(id, "ID", "RIDE");
   connection.query(query, function (error, results) {
     if (results) {
       console.log(results);
-    } else {
-      console.error(error);
     }
   });
-  res.status(200).json("Created a ride");
+  res.status(200).json("Deleted ride");
+});
+
+router.get("/stopRequests", (req, res) => {
+  const { rideID, studentID } = req.query;
+  var queryConditions = buildQueryConditions(
+    ["rideID", rideID],
+    ["studentID", studentID]
+  );
+  connection.query(
+    `SELECT * FROM STOPREQUEST${queryConditions};`,
+    function (error, results) {
+      if (results) {
+        let output = results;
+        res.json(output);
+      } else {
+        console.error(error);
+      }
+    }
+  );
 });
 
 router.post("/stoprequests", (req, res) => {
@@ -136,16 +135,19 @@ router.post("/stoprequests", (req, res) => {
   });
   res.status(200).json("request ride");
 });
-router.delete("/:id", (req, res) => {
-  var id = req.params.id;
-  var query = generateDeleteQuery(id, "ID", "RIDE");
-  connection.query(query, function (error, results) {
+
+router.get("/stopRequests/:id", (req, res) => {
+  const id = parseInt(req.params.id);
+  const query = `SELECT * FROM STOPREQUEST WHERE id = ${id}`;
+  connection.query(`${query};`, function (error, results) {
     if (results) {
-      console.log(results);
-    }
+      let stopRequest = results;
+      if (stopRequest.length > 0) res.status(200).json(stopRequest.pop());
+      else res.status(404).send("Stop request not found.");
+    } else console.error(error);
   });
-  res.status(200).json("Deleted ride");
 });
+
 
 router.delete("/stoprequests/:id", (req, res) => {
   var id = req.params.id;
