@@ -30,10 +30,29 @@ export function generateDeleteQuery(value, attribute, table) {
 export function fetchData(par) {
     var attributes = [];
     var values = [];
+    console.log(par);
     for (const [key, value] of Object.entries(par)) {
-        console.log(key, value);
         attributes.push(key);
         values.push(value);
     }
     return [attributes, values];
+}
+export function formatTime(time) {
+    return ("0" + time.getHours()).slice(-2) + ":" +
+        ("0" + time.getMinutes()).slice(-2) + ":" +
+        ("0" + time.getSeconds()).slice(-2);
+}
+
+export function formatDate(date) {
+    var d = new Date(date),
+        month = '' + (d.getMonth() + 1),
+        day = '' + d.getDate(),
+        year = d.getFullYear();
+
+    if (month.length < 2)
+        month = '0' + month;
+    if (day.length < 2)
+        day = '0' + day;
+
+    return [year, month, day].join('-');
 }

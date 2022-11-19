@@ -110,7 +110,8 @@ router.post("/", (req, res) => {
         }
     })
     res.status(200).json('created a ride');
-})
+});
+
 router.post("/stoprequests", (req, res) => {
     var par = req.body;
     var data = fetchData(par);

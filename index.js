@@ -4,7 +4,7 @@ import ridesRouter from "./src/routers/rides.js";
 import usersRouter from "./src/routers/users.js";
 import getIpAddress from "./src/utilities/get-ip.js";
 import createConnection from "./config/databaseConfig.js";
-
+import chatRouter from "./src/routers/chat.js"
 const app = express();
 app.use(express.json());
 var connection = createConnection();
@@ -21,3 +21,4 @@ app.get("/", (req, res) => {
 app.use("/users", usersRouter);
 app.use("/locations", locationsRouter);
 app.use("/rides", ridesRouter)
+app.use("/chat", chatRouter)
