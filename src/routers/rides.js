@@ -10,6 +10,7 @@ import {
 } from "../functions/functions.js";
 import fetch from "node-fetch";
 import dotenv from "dotenv";
+import orderQuery from "../utilities/order-by-query.js";
 
 dotenv.config();
 var connection = createConnection();
@@ -27,6 +28,8 @@ router.get("/", (req, res) => {
     numberOfSeats,
     minPrice,
     maxPrice,
+    orderBy,
+    descending,
   } = req.query;
 
   let minDateTime = undefined;
@@ -54,6 +57,7 @@ router.get("/", (req, res) => {
         ]
       : undefined
   );
+  queryConditions = orderQuery(queryConditions,orderBy,descending)
 
   console.log(queryConditions)
   connection.query(
