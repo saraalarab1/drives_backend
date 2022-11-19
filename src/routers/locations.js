@@ -37,7 +37,7 @@ router.get("/suggestions/:location", async (req, res) => {
       res.json(result.predictions);
     }
   } catch (e) {
-    console.log(e);
+    console.error(e);
     res.status(400).send("Invalid request.");
   }
 });
