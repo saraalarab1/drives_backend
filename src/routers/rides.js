@@ -67,7 +67,6 @@ router.get("/", (req, res) => {
             dateOfDeparture: new Date(ride.dateOfDeparture),
             dateOfCreation: new Date(ride.dateOfCreation),
           }));
-          console.log(results)
           if (pickupCoordinates) {
             try {
               const { latitude, longitude } = JSON.parse(pickupCoordinates);
@@ -78,7 +77,7 @@ router.get("/", (req, res) => {
               console.error(e);
             }
           } else res.status(200).json(rides);
-        } else res.status(200).send([]);
+        } else res.status(200).json([]);
       } else {
         console.error(error);
       }
@@ -144,34 +143,38 @@ router.post("/", async (req, res) => {
 });
 
 router.get("/stopRequests", (req, res) => {
-  const { rideId, studentId } = req.query;
+  const { rideId, studentId, isDriver } = req.query;
   var queryConditions = buildQueryConditions(
     ["rideId", rideId],
     ["studentId", studentId]
   );
-  connection.query(
-    `SELECT * FROM STOPREQUEST${queryConditions};`,
-    function (error, results) {
-      if (results) {
-        let output = results;
-        res.json(output);
-      } else {
-        console.error(error);
-      }
+  let query = "";
+  if (isDriver)
+    query = `SELECT * FROM STOPREQUEST WHERE rideId=(SELECT DISTINCT rideId FROM RIDE${queryConditions});`;
+  else query = `SELECT * FROM STOPREQUEST${queryConditions};`;
+  connection.query(query, function (error, results) {
+    if (results) {
+      res.status(200).json(results);
+    } else {
+      console.error(error);
+      res.status(400).send(error);
     }
-  );
+  });
 });
 
 router.post("/stoprequests", (req, res) => {
   var par = req.body;
-  var data = fetchData(par);
+  const requestDetails = {
+    ...par,
+    requestStatus: "PENDING",
+    dateOfRequest: formatLocalDate(new Date()),
+  };
+  var data = fetchData(requestDetails);
   const query = generateCreateQuery(data[0], [data[1]], "STOPREQUEST");
   connection.query(query, function (error, results) {
-    if (results) {
-      console.log(results);
-    }
+    if (results) res.status(201).json("Requested a ride.");
+    else res.status(400).json("Failed to request a ride.");
   });
-  res.status(200).json("request ride");
 });
 
 router.get("/stopRequests/:id", (req, res) => {
