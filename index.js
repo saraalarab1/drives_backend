@@ -32,12 +32,3 @@ app.use("/locations", locationsRouter);
 app.use("/rides", ridesRouter)
 app.use("/authentication", authenticationRouter)
 app.use("/reviews", reviewsRouter)
-
-
-// connection.query('select * from student', function(error, results) {
-//   if (results) {
-//       console.log(results);
-//   } else {
-//       console.log(error);
-//   }
-// });

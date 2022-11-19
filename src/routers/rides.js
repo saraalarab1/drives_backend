@@ -2,6 +2,7 @@ import { Router } from "express";
 import createConnection from "../../config/databaseConfig.js";
 import searchForDrivers from "../utilities/searchForDrivers.js";
 import buildQueryConditions from "../utilities/query-builder.js";
+import formatLocalDate from "../utilities/format-date.js";
 import {
   fetchData,
   generateCreateQuery,
@@ -17,53 +18,80 @@ const GOOGLE_MAPS_KEY = process.env.MAPS_API_KEY;
 
 router.get("/", (req, res) => {
   const {
-      driverID,
-      departureCoordinates,
-      destinationCoordinates,
-      pickupCoordinates,
-      minPrice,
-      maxPrice
+    driverId,
+    searcherId,
+    departureCoordinates,
+    destinationCoordinates,
+    pickupCoordinates,
+    dateOfDeparture,
+    numberOfSeats,
+    minPrice,
+    maxPrice,
   } = req.query;
 
+  let minDateTime = undefined;
+  let maxDateTime = undefined;
+
+  if (dateOfDeparture) {
+    minDateTime = new Date(dateOfDeparture);
+    maxDateTime = new Date(dateOfDeparture);
+
+    minDateTime.setHours(maxDateTime.getHours() - 2);
+    maxDateTime.setHours(maxDateTime.getHours() + 2);
+  }
+
   var queryConditions = buildQueryConditions(
-      ["studentID", driverID], ["departureCoordinates", departureCoordinates], ["destinationCoordinates", destinationCoordinates], ["price",[minPrice,maxPrice]]
+    ["studentId", driverId],
+    ["studentId", searcherId, "!="],
+    ["departureCoordinates", departureCoordinates],
+    ["destinationCoordinates", destinationCoordinates],
+    ["numberOfAvailableSeats", numberOfSeats, ">="],
+    ["price", [minPrice, maxPrice]],
+    dateOfDeparture
+      ? [
+          "dateOfDeparture",
+          [formatLocalDate(minDateTime), formatLocalDate(maxDateTime)],
+        ]
+      : undefined
   );
 
-connection.query(
-  `SELECT * FROM RIDE${queryConditions};`,
-  function (error, results) {
-    if (results) {
-      if (results.length > 0) {
-        let rides = results.map((ride) => ({
-          ...ride,
-          departureCoordinates: JSON.parse(ride.departureCoordinates),
-          destinationCoordinates: JSON.parse(ride.destinationCoordinates),
-        }));
-        if (pickupCoordinates) {
-          try {
-            const { latitude, longitude } = JSON.parse(pickupCoordinates);
-            res
-              .status(200)
-              .json(searchForDrivers(latitude, longitude, rides));
-          } catch (e) {
-            console.error(e);
-          }
-        } else res.status(200).json(rides);
-      } else res.status(200).send([]);
-    } else {
-      console.error(error);
+  console.log(queryConditions)
+  connection.query(
+    `SELECT * FROM RIDE${queryConditions};`,
+    function (error, results) {
+      if (results) {
+        if (results.length > 0) {
+          let rides = results.map((ride) => ({
+            ...ride,
+            departureCoordinates: JSON.parse(ride.departureCoordinates),
+            destinationCoordinates: JSON.parse(ride.destinationCoordinates),
+            dateOfDeparture: new Date(ride.dateOfDeparture),
+            dateOfCreation: new Date(ride.dateOfCreation),
+          }));
+          if (pickupCoordinates) {
+            try {
+              const { latitude, longitude } = JSON.parse(pickupCoordinates);
+              res
+                .status(200)
+                .json(searchForDrivers(latitude, longitude, rides));
+            } catch (e) {
+              console.error(e);
+            }
+          } else res.status(200).json(rides);
+        } else res.status(200).send([]);
+      } else {
+        console.error(error);
+      }
     }
-  }
-);
+  );
 });
 
 router.post("/", async (req, res) => {
   var par = req.body;
-  const now = new Date();
   const rideDetails = {
     ...par,
-    dateOfCreation: now.toISOString().slice(0, 10),
-    timeOfCreation: now.toLocaleTimeString().split(" ")[0],
+    dateOfDeparture: formatLocalDate(new Date(par.dateOfDeparture)),
+    dateOfCreation: formatLocalDate(new Date()),
   };
 
   var store = false;
@@ -100,10 +128,9 @@ router.post("/", async (req, res) => {
     }
   }
   if (store) {
-    console.log(rideDetails);
     var data = fetchData(rideDetails);
     const query = generateCreateQuery(data[0], [data[1]], "RIDE");
-    connection.query(query, function (error, results) {
+    connection.query(query.replace(/\\/g, "\\\\"), function (error, results) {
       if (results) {
         res.status(201).json({ status: "SUCCESS" });
       } else {
@@ -116,44 +143,11 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.get("/:id", (req, res) => {
-  const id = parseInt(req.params.id);
-
-  const query = `SELECT * FROM RIDE WHERE ID = ${id}`;
-  connection.query(`${query};`, function (error, results) {
-    if (results) {
-      if (results.length > 0) {
-        let ride = results.pop();
-        console.log(ride);
-        ride = {
-          ...ride,
-          departureCoordinates: JSON.parse(ride.departureCoordinates),
-          destinationCoordinates: JSON.parse(ride.destinationCoordinates),
-        };
-        res.status(200).json(ride);
-      } else res.status(404).send("No Rides Found.");
-    } else {
-      console.error(error);
-    }
-  });
-});
-
-router.delete("/:id", (req, res) => {
-  var id = req.params.id;
-  var query = generateDeleteQuery(id, "ID", "RIDE");
-  connection.query(query, function (error, results) {
-    if (results) {
-      console.log(results);
-    }
-  });
-  res.status(200).json("Deleted ride");
-});
-
 router.get("/stopRequests", (req, res) => {
-  const { rideID, studentID } = req.query;
+  const { rideId, studentId } = req.query;
   var queryConditions = buildQueryConditions(
-    ["rideID", rideID],
-    ["studentID", studentID]
+    ["rideId", rideId],
+    ["studentId", studentId]
   );
   connection.query(
     `SELECT * FROM STOPREQUEST${queryConditions};`,
@@ -192,7 +186,6 @@ router.get("/stopRequests/:id", (req, res) => {
   });
 });
 
-
 router.delete("/stoprequests/:id", (req, res) => {
   var id = req.params.id;
   var query = generateDeleteQuery(id, "ID", "STOPREQUEST");
@@ -203,4 +196,37 @@ router.delete("/stoprequests/:id", (req, res) => {
   });
   res.status(200).json("Deleted stop request");
 });
+
+router.get("/:id", (req, res) => {
+  const id = parseInt(req.params.id);
+
+  const query = `SELECT * FROM RIDE WHERE ID = ${id}`;
+  connection.query(`${query};`, function (error, results) {
+    if (results) {
+      if (results.length > 0) {
+        let ride = results.pop();
+        ride = {
+          ...ride,
+          departureCoordinates: JSON.parse(ride.departureCoordinates),
+          destinationCoordinates: JSON.parse(ride.destinationCoordinates),
+        };
+        res.status(200).json(ride);
+      } else res.status(404).send("No Rides Found.");
+    } else {
+      console.error(error);
+    }
+  });
+});
+
+router.delete("/:id", (req, res) => {
+  var id = req.params.id;
+  var query = generateDeleteQuery(id, "ID", "RIDE");
+  connection.query(query, function (error, results) {
+    if (results) {
+      console.log(results);
+    }
+  });
+  res.status(200).json("Deleted ride");
+});
+
 export default router;
