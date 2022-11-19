@@ -25,8 +25,8 @@ router.get("/", (req, res) => {
     pickupCoordinates,
     dateOfDeparture,
     numberOfSeats,
-    minPrice,
-    maxPrice,
+    minPricePerRider,
+    maxPricePerRider,
   } = req.query;
 
   let minDateTime = undefined;
@@ -42,11 +42,11 @@ router.get("/", (req, res) => {
 
   var queryConditions = buildQueryConditions(
     ["studentId", driverId],
-    ["studentId", searcherId, "!="],
+    // ["studentId", searcherId, "!="],
     ["departureCoordinates", departureCoordinates],
     ["destinationCoordinates", destinationCoordinates],
     ["numberOfAvailableSeats", numberOfSeats, ">="],
-    ["price", [minPrice, maxPrice]],
+    ["pricePerRider", [minPricePerRider, maxPricePerRider]],
     dateOfDeparture
       ? [
           "dateOfDeparture",
@@ -55,7 +55,6 @@ router.get("/", (req, res) => {
       : undefined
   );
 
-  console.log(queryConditions)
   connection.query(
     `SELECT * FROM RIDE${queryConditions};`,
     function (error, results) {
@@ -68,6 +67,7 @@ router.get("/", (req, res) => {
             dateOfDeparture: new Date(ride.dateOfDeparture),
             dateOfCreation: new Date(ride.dateOfCreation),
           }));
+          console.log(results)
           if (pickupCoordinates) {
             try {
               const { latitude, longitude } = JSON.parse(pickupCoordinates);
