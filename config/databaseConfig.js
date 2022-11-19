@@ -6,6 +6,12 @@ var config = {
     password: '2RSm9265gD',
     database: 'sql7573674'
 }
+// var config = {
+//     host: 'localhost',
+//     user: 'root',
+//     password: 'root',
+//     database: 'drives'
+// }
 var connection = mysql.createConnection(config); //added the line
 connection.connect(function(err) {
     if (err) {

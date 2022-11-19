@@ -10,6 +10,7 @@ import {
 } from "../functions/functions.js";
 import fetch from "node-fetch";
 import dotenv from "dotenv";
+import orderQuery from "../utilities/order-by-query.js";
 
 dotenv.config();
 var connection = createConnection();
@@ -27,6 +28,8 @@ router.get("/", (req, res) => {
     numberOfSeats,
     minPricePerRider,
     maxPricePerRider,
+    orderBy,
+    descending,
   } = req.query;
 
   let minDateTime = undefined;
@@ -42,7 +45,7 @@ router.get("/", (req, res) => {
 
   var queryConditions = buildQueryConditions(
     ["studentId", driverId],
-    // ["studentId", searcherId, "!="],
+    ["studentId", searcherId, "!="],
     ["departureCoordinates", departureCoordinates],
     ["destinationCoordinates", destinationCoordinates],
     ["numberOfAvailableSeats", numberOfSeats, ">="],
@@ -55,6 +58,7 @@ router.get("/", (req, res) => {
       : undefined
   );
 
+  queryConditions = orderQuery(queryConditions, orderBy, descending);
   connection.query(
     `SELECT * FROM RIDE${queryConditions};`,
     function (error, results) {
@@ -146,11 +150,12 @@ router.get("/stopRequests", (req, res) => {
   const { rideId, studentId, isDriver } = req.query;
   var queryConditions = buildQueryConditions(
     ["rideId", rideId],
-    ["studentId", studentId]
+    ["studentId", studentId],
+    !isDriver ? ["requestStatus", "REJECTED", "!="] : undefined
   );
   let query = "";
   if (isDriver)
-    query = `SELECT * FROM STOPREQUEST WHERE rideId=(SELECT DISTINCT rideId FROM RIDE${queryConditions});`;
+    query = `SELECT * FROM STOPREQUEST WHERE requestStatus = 'PENDING' AND rideId=(SELECT DISTINCT rideId FROM RIDE${queryConditions});`;
   else query = `SELECT * FROM STOPREQUEST${queryConditions};`;
   connection.query(query, function (error, results) {
     if (results) {
@@ -162,7 +167,19 @@ router.get("/stopRequests", (req, res) => {
   });
 });
 
-router.post("/stoprequests", (req, res) => {
+router.post("/", (req, res) => {
+  var par = req.body;
+  var data = fetchData(par);
+  const query = generateCreateQuery(data[0], [data[1]], "RIDE");
+  connection.query(query, function (error, results) {
+    if (results) {
+      console.log(results);
+    }
+  });
+  res.status(200).json("created a ride");
+});
+
+router.post("/stopRequests", (req, res) => {
   var par = req.body;
   const requestDetails = {
     ...par,
@@ -189,7 +206,25 @@ router.get("/stopRequests/:id", (req, res) => {
   });
 });
 
-router.delete("/stoprequests/:id", (req, res) => {
+router.patch("/stopRequests/:id", (req, res) => {
+  var id = req.params.id;
+  const { newStatus, rideId } = req.body;
+  var query = `UPDATE STOPREQUEST SET requestStatus = '${newStatus}' WHERE ID = ${id}`;
+  connection.query(query, function (error, results) {
+    if (results) {
+      if (newStatus === "ACCEPTED") {
+        const rideQuery = `UPDATE RIDE SET numberOfAvailableSeats = numberOfAvailableSeats - 1 WHERE ID = ${rideId}`;
+        connection.query(rideQuery, function (error, results) {
+          if (results) {
+            res.status(200).json("Updated stop request.");
+          } else res.status(400).json("Failed to update stop request.");
+        });
+      } else res.status(200).json("Updated stop request.");
+    } else res.status(400).json("Failed to update stop request.");
+  });
+});
+
+router.delete("/stopRequests/:id", (req, res) => {
   var id = req.params.id;
   var query = generateDeleteQuery(id, "ID", "STOPREQUEST");
   connection.query(query, function (error, results) {
