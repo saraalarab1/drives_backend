@@ -10,10 +10,10 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 dotenv.config();
 import createConnection from "./config/databaseConfig.js";
-
+import chatRouter from "./src/routers/chat.js"
 const app = express();
 
-app.use(cors({ credentials:true, origin:'http://localhost:3000' }));
+app.use(cors({ credentials: true, origin: 'http://localhost:3000' }));
 app.use(cookieParser());
 app.use(express.json());
 var connection = createConnection();
@@ -30,5 +30,6 @@ app.get("/", (req, res) => {
 app.use("/users", usersRouter);
 app.use("/locations", locationsRouter);
 app.use("/rides", ridesRouter)
+app.use("/chat", chatRouter)
 app.use("/authentication", authenticationRouter)
 app.use("/reviews", reviewsRouter)
