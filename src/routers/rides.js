@@ -212,17 +212,6 @@ router.patch("/stopRequests/:id", (req, res) => {
   });
 });
 
-router.delete("/stopRequests/:id", (req, res) => {
-  var id = req.params.id;
-  var query = generateDeleteQuery(id, "ID", "STOPREQUEST");
-  connection.query(query, function (error, results) {
-    if (results) {
-      console.log(results);
-    }
-  });
-  res.status(200).json("Deleted stop request");
-});
-
 router.get("/:id", (req, res) => {
   const id = parseInt(req.params.id);
 
@@ -244,15 +233,22 @@ router.get("/:id", (req, res) => {
   });
 });
 
+router.delete("/stopRequests/:id", (req, res) => {
+  var id = req.params.id;
+  var query = generateDeleteQuery(id, "ID", "STOPREQUEST");
+  connection.query(query, function (error, results) {
+    if (results) res.status(200).json("Deleted stop request.");
+    else res.status(400).json("Failed to delete stop request.");
+  });
+});
+
 router.delete("/:id", (req, res) => {
   var id = req.params.id;
   var query = generateDeleteQuery(id, "ID", "RIDE");
   connection.query(query, function (error, results) {
-    if (results) {
-      console.log(results);
-    }
+    if (results) res.status(200).json("Deleted ride.");
+    else res.status(400).json("Failed to delete ride.");
   });
-  res.status(200).json("Deleted ride");
 });
 
 export default router;
