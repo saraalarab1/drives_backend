@@ -155,7 +155,7 @@ router.get("/stopRequests", (req, res) => {
   );
   let query = "";
   if (isDriver)
-    query = `SELECT * FROM STOPREQUEST WHERE requestStatus = 'PENDING' AND rideId=(SELECT DISTINCT rideId FROM RIDE${queryConditions});`;
+    query = `SELECT * FROM STOPREQUEST WHERE requestStatus = 'PENDING' AND rideId IN (SELECT DISTINCT ID AS rideId FROM RIDE${queryConditions});`;
   else query = `SELECT * FROM STOPREQUEST${queryConditions};`;
   connection.query(query, function (error, results) {
     if (results) {
@@ -235,10 +235,20 @@ router.get("/:id", (req, res) => {
 
 router.delete("/stopRequests/:id", (req, res) => {
   var id = req.params.id;
+  const { requestStatus, rideId } = req.body;
   var query = generateDeleteQuery(id, "ID", "STOPREQUEST");
   connection.query(query, function (error, results) {
-    if (results) res.status(200).json("Deleted stop request.");
-    else res.status(400).json("Failed to delete stop request.");
+    if (results) {
+      if (requestStatus && requestStatus === "ACCEPTED") {
+        connection.query(
+          `UPDATE RIDE SET numberOfAvailableSeats = numberOfAvailableSeats + 1 WHERE ID = ${rideId}`,
+          function (error, results) {
+            if (results) res.status(200).json("Deleted stop request.");
+            else res.status(400).json("Failed to delete stop request.");
+          }
+        );
+      } else res.status(200).json("Deleted stop request.");
+    } else res.status(400).json("Failed to delete stop request.");
   });
 });
 
