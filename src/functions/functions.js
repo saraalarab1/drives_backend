@@ -30,7 +30,6 @@ export function generateDeleteQuery(value, attribute, table) {
 export function fetchData(par) {
     var attributes = [];
     var values = [];
-    console.log(par);
     for (const [key, value] of Object.entries(par)) {
         attributes.push(key);
         values.push(value);

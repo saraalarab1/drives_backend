@@ -167,18 +167,6 @@ router.get("/stopRequests", (req, res) => {
   });
 });
 
-router.post("/", (req, res) => {
-  var par = req.body;
-  var data = fetchData(par);
-  const query = generateCreateQuery(data[0], [data[1]], "RIDE");
-  connection.query(query, function (error, results) {
-    if (results) {
-      console.log(results);
-    }
-  });
-  res.status(200).json("created a ride");
-});
-
 router.post("/stopRequests", (req, res) => {
   var par = req.body;
   const requestDetails = {
