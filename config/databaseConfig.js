@@ -18,7 +18,7 @@ connection.connect(function (err) {
   if (err) {
     console.log("error connecting:" + err.stack);
   }
-  console.log("connected successfully to DB.");
+  console.log("Connected successfully to DB.");
 });
 
 export default function createConnection() {

@@ -25,7 +25,8 @@
     "node-fetch": "^3.2.10",
     "require": "^2.4.20",
     "sequelize": "^6.25.6",
-    "sql": "^0.78.0"
+    "sql": "^0.78.0",
+    "ws": "^8.11.0"
   },
   "devDependencies": {
     "husky": "^8.0.1",
