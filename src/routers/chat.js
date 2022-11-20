@@ -2,6 +2,7 @@ import { Router } from "express";
 import createConnection from "../../config/databaseConfig.js";
 import { fetchData, generateCreateQuery } from "../functions/functions.js";
 import formatLocalDate from "../utilities/format-date.js";
+import { connectedUsers } from "../../config/websocketConfig.js";
 
 var connection = createConnection();
 const router = Router();
@@ -83,15 +84,26 @@ router.post("/", (req, res) => {
 });
 
 router.post("/sendMessage", (req, res) => {
-  var par = req.body;
+  var { studentId, chatId, message, receiverId } = req.body;
   var data = fetchData({
-    ...par,
+    studentId,
+    chatId,
+    message,
+
     date: `${formatLocalDate(new Date())}`,
   });
   const query = generateCreateQuery(data[0], [data[1]], "MESSAGE");
   connection.query(query, function (error, results) {
-    if (results) res.status(201).json(results);
-    else {
+    if (results) {
+      try {
+        connectedUsers[receiverId.toString()].send(
+          JSON.stringify({ type: "UPDATE_CHATS", content: "" })
+        );
+      } catch (e) {
+        console.error(e);
+      }
+      res.status(201).json(results);
+    } else {
       res.status(400).json("Could not send message.");
       console.error(error);
     }
