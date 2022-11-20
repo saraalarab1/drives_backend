@@ -1,6 +1,8 @@
 import { WebSocketServer } from "ws";
 
-const createWebsocketServer = () => {
+export const connectedUsers = {};
+
+export const createWebsocketServer = () => {
   const wss = new WebSocketServer({
     port: 8080,
     perMessageDeflate: {
@@ -26,11 +28,16 @@ const createWebsocketServer = () => {
 
   wss.on("connection", (ws) => {
     ws.on("message", (data) => {
-      console.log(data.toString());
+      const { type, content } = JSON.parse(data.toString());
+      if (type === "IDENTIFICATION") {
+        try {
+          connectedUsers[content.toString()] = ws;
+          console.log(`New user (ID: ${content}) connected to WebSocket.`);
+        } catch (e) {
+          console.log("New user could not connect to WebSocket.", content, e);
+        }
+      }
     });
-    console.log("New device connected to WebSocket.");
   });
   console.log("Created WebSocket.");
 };
-
-export default createWebsocketServer;
