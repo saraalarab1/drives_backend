@@ -2,7 +2,7 @@ import { Router } from "express";
 import createConnection from "../../config/databaseConfig.js";
 import searchForDrivers from "../utilities/searchForDrivers.js";
 import buildQueryConditions from "../utilities/query-builder.js";
-import formatLocalDate from "../utilities/format-date.js";
+import formatUTCDate from "../utilities/format-date.js";
 import {
   fetchData,
   generateCreateQuery,
@@ -54,7 +54,7 @@ router.get("/", (req, res) => {
     dateOfDeparture
       ? [
           "dateOfDeparture",
-          [formatLocalDate(minDateTime), formatLocalDate(maxDateTime)],
+          [formatUTCDate(minDateTime), formatUTCDate(maxDateTime)],
         ]
       : undefined
   );
@@ -94,8 +94,8 @@ router.post("/", async (req, res) => {
   var par = req.body;
   const rideDetails = {
     ...par,
-    dateOfDeparture: formatLocalDate(new Date(par.dateOfDeparture)),
-    dateOfCreation: formatLocalDate(new Date()),
+    dateOfDeparture: formatUTCDate(new Date(par.dateOfDeparture)),
+    dateOfCreation: formatUTCDate(new Date()),
   };
 
   var store = false;
@@ -176,7 +176,7 @@ router.post("/stopRequests", (req, res) => {
     location,
     coordinates,
     requestStatus: "PENDING",
-    dateOfRequest: formatLocalDate(new Date()),
+    dateOfRequest: formatUTCDate(new Date()),
   };
 
   var data = fetchData(requestDetails);
@@ -187,9 +187,7 @@ router.post("/stopRequests", (req, res) => {
         connectedUsers[driverId.toString()].send(
           JSON.stringify({ type: "UPDATE_STOP_REQUESTS_DRIVER", content: "" })
         );
-      } catch (e) {
-        console.error(e);
-      }
+      } catch (e) {}
       res.status(201).json("Requested a ride.");
     } else res.status(400).json("Failed to request a ride.");
   });
@@ -224,9 +222,7 @@ router.patch("/stopRequests/:id", (req, res) => {
                   content: "",
                 })
               );
-            } catch (e) {
-              console.error(e);
-            }
+            } catch (e) {}
             res.status(200).json("Updated stop request.");
           } else res.status(400).json("Failed to update stop request.");
         });
@@ -238,9 +234,7 @@ router.patch("/stopRequests/:id", (req, res) => {
               content: "",
             })
           );
-        } catch (e) {
-          console.error(e);
-        }
+        } catch (e) {}
         res.status(200).json("Updated stop request.");
       }
     } else res.status(400).json("Failed to update stop request.");

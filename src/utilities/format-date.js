@@ -1,9 +1,7 @@
-const formatLocalDate = (dateTime) => {
-  const date = dateTime.toLocaleDateString().split("/");
-  const time = dateTime.toTimeString().substring(0, 8);
-  return `${date[2]}-${parseInt(date[0]) < 10 ? "0" : ""}${date[0]}-${
-    parseInt(date[1]) < 10 ? "0" : ""
-  }${date[1]} ${time}`;
+const formatUTCDate = (dateTime) => {
+  const date = dateTime.toISOString().substring(0, 10);
+  const time = dateTime.toLocaleTimeString("en-GB", { timeZone: "UTC" }).substring(0, 8);
+  return `${date} ${time}`;
 };
 
-export default formatLocalDate;
+export default formatUTCDate;

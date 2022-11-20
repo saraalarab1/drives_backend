@@ -1,12 +1,11 @@
 import { Router } from "express";
 import createConnection from "../../config/databaseConfig.js";
 import { fetchData, generateCreateQuery } from "../functions/functions.js";
-import formatLocalDate from "../utilities/format-date.js";
+import formatUTCDate from "../utilities/format-date.js";
 import { connectedUsers } from "../../config/websocketConfig.js";
 
 var connection = createConnection();
 const router = Router();
-
 router.get("/getAllChats/:id", (req, res) => {
   const studentId = req.params.id;
   try {
@@ -20,7 +19,14 @@ router.get("/getAllChats/:id", (req, res) => {
       ON STUDENT.ID = Z.riderId;`,
       function (error, results) {
         if (results) {
-          let output = results;
+          const output = results.map(result => {
+            const fetchedDate = new Date(result.date)
+            fetchedDate.setMinutes(fetchedDate.getMinutes() - fetchedDate.getTimezoneOffset())
+            return {
+              ...result,
+              date: fetchedDate.toISOString()
+            }
+          })
           res.status(200).json(output);
         } else {
           res.status(400).json("Unable to fetch chats.");
@@ -39,7 +45,17 @@ router.get("/:id", (req, res) => {
     connection.query(
       `SELECT * FROM MESSAGE WHERE chatId = ${chatId} ORDER BY date DESC`,
       function (error, results) {
-        if (results) res.status(200).json(results);
+        if (results){
+          const output = results.map(result => {
+            const fetchedDate = new Date(result.date)
+            fetchedDate.setMinutes(fetchedDate.getMinutes() - fetchedDate.getTimezoneOffset())
+            return {
+              ...result,
+              date: fetchedDate.toISOString()
+            }
+          })
+          res.status(200).json(output);
+        }
         else {
           res.status(400).json("Could not get chat.");
           console.error(error);
@@ -52,7 +68,7 @@ router.get("/:id", (req, res) => {
 });
 
 router.post("/", (req, res) => {
-  var { rideId, studentId, firstName } = req.body;
+  var { rideId, studentId, firstName, date } = req.body;
   var data = fetchData({ rideId, studentId });
   const query = generateCreateQuery(data[0], [data[1]], "CHAT");
   connection.query(query, function (error, results) {
@@ -61,7 +77,7 @@ router.post("/", (req, res) => {
         studentId,
         chatId: results.insertId,
         message: `${firstName} initiated chat.`,
-        date: `${formatLocalDate(new Date())}`,
+        date,
       });
       const query2 = generateCreateQuery(
         messageQueryParams[0],
@@ -84,13 +100,12 @@ router.post("/", (req, res) => {
 });
 
 router.post("/sendMessage", (req, res) => {
-  var { studentId, chatId, message, receiverId } = req.body;
+  var { studentId, chatId, message, receiverId, date } = req.body;
   var data = fetchData({
     studentId,
     chatId,
     message,
-
-    date: `${formatLocalDate(new Date())}`,
+    date
   });
   const query = generateCreateQuery(data[0], [data[1]], "MESSAGE");
   connection.query(query, function (error, results) {
@@ -99,9 +114,7 @@ router.post("/sendMessage", (req, res) => {
         connectedUsers[receiverId.toString()].send(
           JSON.stringify({ type: "UPDATE_CHATS", content: "" })
         );
-      } catch (e) {
-        console.error(e);
-      }
+      } catch (e) {}
       res.status(201).json(results);
     } else {
       res.status(400).json("Could not send message.");
