@@ -11,6 +11,7 @@ import {
 import fetch from "node-fetch";
 import dotenv from "dotenv";
 import orderQuery from "../utilities/order-by-query.js";
+import { connectedUsers } from "../../config/websocketConfig.js";
 
 dotenv.config();
 var connection = createConnection();
@@ -168,17 +169,29 @@ router.get("/stopRequests", (req, res) => {
 });
 
 router.post("/stopRequests", (req, res) => {
-  var par = req.body;
+  var { rideId, studentId, driverId, location, coordinates } = req.body;
   const requestDetails = {
-    ...par,
+    rideId,
+    studentId,
+    location,
+    coordinates,
     requestStatus: "PENDING",
     dateOfRequest: formatLocalDate(new Date()),
   };
+
   var data = fetchData(requestDetails);
   const query = generateCreateQuery(data[0], [data[1]], "STOPREQUEST");
   connection.query(query, function (error, results) {
-    if (results) res.status(201).json("Requested a ride.");
-    else res.status(400).json("Failed to request a ride.");
+    if (results) {
+      try {
+        connectedUsers[driverId.toString()].send(
+          JSON.stringify({ type: "UPDATE_STOP_REQUESTS_DRIVER", content: "" })
+        );
+      } catch (e) {
+        console.error(e);
+      }
+      res.status(201).json("Requested a ride.");
+    } else res.status(400).json("Failed to request a ride.");
   });
 });
 
@@ -196,7 +209,7 @@ router.get("/stopRequests/:id", (req, res) => {
 
 router.patch("/stopRequests/:id", (req, res) => {
   var id = req.params.id;
-  const { newStatus, rideId } = req.body;
+  const { newStatus, rideId, riderId } = req.body;
   var query = `UPDATE STOPREQUEST SET requestStatus = '${newStatus}' WHERE ID = ${id}`;
   connection.query(query, function (error, results) {
     if (results) {
@@ -204,10 +217,32 @@ router.patch("/stopRequests/:id", (req, res) => {
         const rideQuery = `UPDATE RIDE SET numberOfAvailableSeats = numberOfAvailableSeats - 1 WHERE ID = ${rideId}`;
         connection.query(rideQuery, function (error, results) {
           if (results) {
+            try {
+              connectedUsers[riderId.toString()].send(
+                JSON.stringify({
+                  type: "UPDATE_STOP_REQUESTS",
+                  content: "",
+                })
+              );
+            } catch (e) {
+              console.error(e);
+            }
             res.status(200).json("Updated stop request.");
           } else res.status(400).json("Failed to update stop request.");
         });
-      } else res.status(200).json("Updated stop request.");
+      } else {
+        try {
+          connectedUsers[riderId.toString()].send(
+            JSON.stringify({
+              type: "UPDATE_STOP_REQUESTS",
+              content: "",
+            })
+          );
+        } catch (e) {
+          console.error(e);
+        }
+        res.status(200).json("Updated stop request.");
+      }
     } else res.status(400).json("Failed to update stop request.");
   });
 });
