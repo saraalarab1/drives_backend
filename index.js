@@ -9,15 +9,18 @@ import getIpAddress from "./src/utilities/get-ip.js";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import cors from "cors";
-dotenv.config();
 import createConnection from "./config/databaseConfig.js";
-import chatRouter from "./src/routers/chat.js"
+import chatRouter from "./src/routers/chat.js";
+import { createWebsocketServer } from "./config/websocketConfig.js";
 const app = express();
 
-app.use(cors({ credentials: true, origin: 'http://localhost:3000' }));
+dotenv.config();
+app.use(cors({ credentials: true, origin: "http://localhost:3000" }));
 app.use(cookieParser());
 app.use(express.json());
 var connection = createConnection();
+var wsUsers = createWebsocketServer();
+
 const port = process.env.PORT || 3737;
 
 app.listen(port, () => {
