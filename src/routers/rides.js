@@ -50,7 +50,9 @@ router.get("/", (req, res) => {
     ["studentId", searcherId, "!="],
     ["departureCoordinates", departureCoordinates],
     ["destinationCoordinates", destinationCoordinates],
-    ["rideStatus", rideStatus],
+    rideStatus === "NOT_PENDING"
+      ? ["rideStatus", "PENDING", "!="]
+      : ["rideStatus", rideStatus],
     ["numberOfAvailableSeats", numberOfSeats, ">="],
     ["pricePerRider", [minPricePerRider, maxPricePerRider]],
     dateOfDeparture
@@ -156,16 +158,20 @@ router.get("/stopRequests", (req, res) => {
     const queryConditions = buildQueryConditions(
       ["ID", rideId],
       ["studentId", studentId],
-      ["rideStatus", rideStatus]
+      rideStatus === "NOT_PENDING"
+        ? ["rideStatus", "PENDING", "!="]
+        : ["rideStatus", rideStatus]
     );
     query = `SELECT * FROM STOPREQUEST WHERE ${
       requestStatus ? `requestStatus = '${requestStatus}' AND ` : ""
-    }rideId IN (SELECT DISTINCT ID AS rideId FROM RIDE${queryConditions});`;
+    }rideId = (SELECT DISTINCT ID AS rideId FROM RIDE${queryConditions});`;
   } else {
     const queryConditions = buildQueryConditions(
       ["rideId", rideId],
       ["studentId", studentId],
-      requestStatus === 'NOT_REJECTED' ? ["requestStatus", 'REJECTED', '!='] : ["requestStatus", requestStatus]
+      requestStatus === "NOT_REJECTED"
+        ? ["requestStatus", "REJECTED", "!="]
+        : ["requestStatus", requestStatus]
     );
     query = `SELECT * FROM STOPREQUEST${queryConditions};`;
   }
@@ -279,16 +285,17 @@ router.patch("/:id", (req, res) => {
   var query = `UPDATE RIDE SET rideStatus = '${newStatus}' WHERE ID = ${id}`;
   connection.query(query, function (error, results) {
     if (results) {
-      riderIdArr.forEach((riderId) => {
-        try {
-          connectedUsers[riderId.toString()].send(
-            JSON.stringify({
-              type: "UPDATE_STOP_REQUESTS",
-              content: "",
-            })
-          );
-        } catch (e) {}
-      });
+      if (riderIdArr)
+        riderIdArr.forEach((riderId) => {
+          try {
+            connectedUsers[riderId.toString()].send(
+              JSON.stringify({
+                type: "UPDATE_STOP_REQUESTS",
+                content: "",
+              })
+            );
+          } catch (e) {}
+        });
       res.status(200).json("Updated ride.");
     } else res.status(400).json("Failed to update ride.");
   });
@@ -318,7 +325,8 @@ router.delete("/:id", (req, res) => {
   var query = generateDeleteQuery(id, "ID", "RIDE");
   connection.query(query, function (error, results) {
     if (results) res.status(200).json("Deleted ride.");
-    else res.status(400).json("Failed to delete ride.");
+    else
+      res.status(400).json({ rideId: id, message: "Failed to delete ride." });
   });
 });
 
