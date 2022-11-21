@@ -4,6 +4,7 @@ import ridesRouter from "./src/routers/rides.js";
 import usersRouter from "./src/routers/users.js";
 import authenticationRouter from "./src/routers/authentication.js";
 import reviewsRouter from './src/routers/reviews.js';
+import notificationRouter from './src/routers/notifications.js';
 import getIpAddress from "./src/utilities/get-ip.js";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
@@ -33,3 +34,4 @@ app.use("/rides", ridesRouter)
 app.use("/chat", chatRouter)
 app.use("/authentication", authenticationRouter)
 app.use("/reviews", reviewsRouter)
+app.use("/notifications", notificationRouter)
