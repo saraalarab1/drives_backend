@@ -37,9 +37,10 @@ router.get("/:id", (req, res) => {
 });
 
 router.patch("/:id", (req, res) => {
+  const id = req.params.id
     console.log(req.body);
     connection.query(
-        `UPDATE STUDENT SET firstName = '${req.body.firstName}', lastName = '${req.body.lastName}', phoneNumber = ${req.body.phoneNumber}, dateOfBirth = '${req.body.dateOfBirth}' WHERE ID = ${req.body.studentId};`,
+        `UPDATE STUDENT SET firstName = '${req.body.firstName}', lastName = '${req.body.lastName}', phoneNumber = ${req.body.phoneNumber}, dateOfBirth = '${req.body.dateOfBirth}' WHERE ID = ${id};`,
         function(error, results) {
             if (results) {
                 console.log(results);

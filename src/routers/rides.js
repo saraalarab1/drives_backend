@@ -29,6 +29,7 @@ router.get("/", (req, res) => {
     numberOfSeats,
     minPricePerRider,
     maxPricePerRider,
+    rideStatus,
     orderBy,
     descending,
   } = req.query;
@@ -49,6 +50,7 @@ router.get("/", (req, res) => {
     ["studentId", searcherId, "!="],
     ["departureCoordinates", departureCoordinates],
     ["destinationCoordinates", destinationCoordinates],
+    ["rideStatus", rideStatus],
     ["numberOfAvailableSeats", numberOfSeats, ">="],
     ["pricePerRider", [minPricePerRider, maxPricePerRider]],
     dateOfDeparture
@@ -148,16 +150,25 @@ router.post("/", async (req, res) => {
 });
 
 router.get("/stopRequests", (req, res) => {
-  const { rideId, studentId, isDriver } = req.query;
-  var queryConditions = buildQueryConditions(
-    ["rideId", rideId],
-    ["studentId", studentId],
-    !isDriver ? ["requestStatus", "REJECTED", "!="] : undefined
-  );
+  const { rideId, studentId, isDriver, requestStatus, rideStatus } = req.query;
   let query = "";
-  if (isDriver)
-    query = `SELECT * FROM STOPREQUEST WHERE requestStatus = 'PENDING' AND rideId IN (SELECT DISTINCT ID AS rideId FROM RIDE${queryConditions});`;
-  else query = `SELECT * FROM STOPREQUEST${queryConditions};`;
+  if (isDriver) {
+    const queryConditions = buildQueryConditions(
+      ["ID", rideId],
+      ["studentId", studentId],
+      ["rideStatus", rideStatus]
+    );
+    query = `SELECT * FROM STOPREQUEST WHERE ${
+      requestStatus ? `requestStatus = '${requestStatus}' AND ` : ""
+    }rideId IN (SELECT DISTINCT ID AS rideId FROM RIDE${queryConditions});`;
+  } else {
+    const queryConditions = buildQueryConditions(
+      ["rideId", rideId],
+      ["studentId", studentId],
+      requestStatus === 'NOT_REJECTED' ? ["requestStatus", 'REJECTED', '!='] : ["requestStatus", requestStatus]
+    );
+    query = `SELECT * FROM STOPREQUEST${queryConditions};`;
+  }
   connection.query(query, function (error, results) {
     if (results) {
       res.status(200).json(results);
@@ -205,6 +216,27 @@ router.get("/stopRequests/:id", (req, res) => {
   });
 });
 
+router.get("/:id", (req, res) => {
+  const id = parseInt(req.params.id);
+
+  const query = `SELECT * FROM RIDE WHERE ID = ${id}`;
+  connection.query(`${query};`, function (error, results) {
+    if (results) {
+      if (results.length > 0) {
+        let ride = results.pop();
+        ride = {
+          ...ride,
+          departureCoordinates: JSON.parse(ride.departureCoordinates),
+          destinationCoordinates: JSON.parse(ride.destinationCoordinates),
+        };
+        res.status(200).json(ride);
+      } else res.status(404).send("No Rides Found.");
+    } else {
+      console.error(error);
+    }
+  });
+});
+
 router.patch("/stopRequests/:id", (req, res) => {
   var id = req.params.id;
   const { newStatus, rideId, riderId } = req.body;
@@ -241,24 +273,24 @@ router.patch("/stopRequests/:id", (req, res) => {
   });
 });
 
-router.get("/:id", (req, res) => {
-  const id = parseInt(req.params.id);
-
-  const query = `SELECT * FROM RIDE WHERE ID = ${id}`;
-  connection.query(`${query};`, function (error, results) {
+router.patch("/:id", (req, res) => {
+  var id = req.params.id;
+  const { newStatus, riderIdArr } = req.body;
+  var query = `UPDATE RIDE SET rideStatus = '${newStatus}' WHERE ID = ${id}`;
+  connection.query(query, function (error, results) {
     if (results) {
-      if (results.length > 0) {
-        let ride = results.pop();
-        ride = {
-          ...ride,
-          departureCoordinates: JSON.parse(ride.departureCoordinates),
-          destinationCoordinates: JSON.parse(ride.destinationCoordinates),
-        };
-        res.status(200).json(ride);
-      } else res.status(404).send("No Rides Found.");
-    } else {
-      console.error(error);
-    }
+      riderIdArr.forEach((riderId) => {
+        try {
+          connectedUsers[riderId.toString()].send(
+            JSON.stringify({
+              type: "UPDATE_STOP_REQUESTS",
+              content: "",
+            })
+          );
+        } catch (e) {}
+      });
+      res.status(200).json("Updated ride.");
+    } else res.status(400).json("Failed to update ride.");
   });
 });
 

@@ -68,7 +68,7 @@ router.get("/:id", (req, res) => {
 });
 
 router.post("/", (req, res) => {
-  var { rideId, studentId, firstName, date } = req.body;
+  var { rideId, studentId, firstName, date, receiverId } = req.body;
   var data = fetchData({ rideId, studentId });
   const query = generateCreateQuery(data[0], [data[1]], "CHAT");
   connection.query(query, function (error, results) {
@@ -86,6 +86,11 @@ router.post("/", (req, res) => {
       );
       connection.query(query2, function (error, results) {
         if (results) {
+          try {
+            connectedUsers[receiverId.toString()].send(
+              JSON.stringify({ type: "UPDATE_CHATS", content: "" })
+            );
+          } catch (e) {}
           res.status(200).json("Successfully created chat.");
         } else {
           res.status(400).json("Unable to create chat.");
