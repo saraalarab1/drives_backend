@@ -69,13 +69,19 @@ router.get("/", (req, res) => {
     function (error, results) {
       if (results) {
         if (results.length > 0) {
-          let rides = results.map((ride) => ({
-            ...ride,
-            departureCoordinates: JSON.parse(ride.departureCoordinates),
-            destinationCoordinates: JSON.parse(ride.destinationCoordinates),
-            dateOfDeparture: new Date(ride.dateOfDeparture),
-            dateOfCreation: new Date(ride.dateOfCreation),
-          }));
+          let rides = results.map((ride) => {
+            const fetchedDate = new Date(ride.dateOfDeparture);
+            fetchedDate.setMinutes(
+              fetchedDate.getMinutes() - fetchedDate.getTimezoneOffset()
+            );
+            return {
+              ...ride,
+              departureCoordinates: JSON.parse(ride.departureCoordinates),
+              destinationCoordinates: JSON.parse(ride.destinationCoordinates),
+              dateOfDeparture: new Date(fetchedDate),
+              dateOfCreation: new Date(ride.dateOfCreation),
+            };
+          });
           if (pickupCoordinates) {
             try {
               const { latitude, longitude } = JSON.parse(pickupCoordinates);
@@ -98,7 +104,7 @@ router.post("/", async (req, res) => {
   var par = req.body;
   const rideDetails = {
     ...par,
-    dateOfDeparture: formatUTCDate(new Date(par.dateOfDeparture)),
+    dateOfDeparture: par.dateOfDeparture,
     dateOfCreation: formatUTCDate(new Date()),
   };
 
@@ -168,12 +174,15 @@ router.get("/stopRequests", (req, res) => {
   } else {
     const queryConditions = buildQueryConditions(
       ["rideId", rideId],
-      ["studentId", studentId],
+      ["STOPREQUEST.studentId", studentId],
       requestStatus === "NOT_REJECTED"
         ? ["requestStatus", "REJECTED", "!="]
-        : ["requestStatus", requestStatus]
+        : ["requestStatus", requestStatus],
+      rideStatus === "NOT_PENDING"
+        ? ["rideStatus", "PENDING", "!="]
+        : ["rideStatus", rideStatus]
     );
-    query = `SELECT * FROM STOPREQUEST${queryConditions};`;
+    query = `SELECT STOPREQUEST.*, RIDE.rideStatus FROM STOPREQUEST JOIN RIDE ON STOPREQUEST.rideId = RIDE.ID${queryConditions}`;
   }
   connection.query(query, function (error, results) {
     if (results) {
@@ -230,8 +239,13 @@ router.get("/:id", (req, res) => {
     if (results) {
       if (results.length > 0) {
         let ride = results.pop();
+        const fetchedDate = new Date(ride.dateOfDeparture);
+        fetchedDate.setMinutes(
+          fetchedDate.getMinutes() - fetchedDate.getTimezoneOffset()
+        );
         ride = {
           ...ride,
+          dateOfDeparture: new Date(fetchedDate),
           departureCoordinates: JSON.parse(ride.departureCoordinates),
           destinationCoordinates: JSON.parse(ride.destinationCoordinates),
         };
@@ -303,7 +317,7 @@ router.patch("/:id", (req, res) => {
 
 router.delete("/stopRequests/:id", (req, res) => {
   var id = req.params.id;
-  const { requestStatus, rideId } = req.body;
+  const { requestStatus, rideId, driverId } = req.body;
   var query = generateDeleteQuery(id, "ID", "STOPREQUEST");
   connection.query(query, function (error, results) {
     if (results) {
@@ -311,11 +325,30 @@ router.delete("/stopRequests/:id", (req, res) => {
         connection.query(
           `UPDATE RIDE SET numberOfAvailableSeats = numberOfAvailableSeats + 1 WHERE ID = ${rideId}`,
           function (error, results) {
-            if (results) res.status(200).json("Deleted stop request.");
-            else res.status(400).json("Failed to delete stop request.");
+            if (results) {
+              try {
+                connectedUsers[driverId.toString()].send(
+                  JSON.stringify({
+                    type: "UPDATE_RIDE_AFTER_STOPREQUEST_DELETE",
+                    content: rideId,
+                  })
+                );
+              } catch (e) {}
+              res.status(200).json("Deleted stop request.");
+            } else res.status(400).json("Failed to delete stop request.");
           }
         );
-      } else res.status(200).json("Deleted stop request.");
+      } else {
+        try {
+          connectedUsers[driverId.toString()].send(
+            JSON.stringify({
+              type: "UPDATE_RIDE_AFTER_STOPREQUEST_DELETE",
+              content: rideId,
+            })
+          );
+        } catch (e) {}
+        res.status(200).json("Deleted stop request.");
+      }
     } else res.status(400).json("Failed to delete stop request.");
   });
 });

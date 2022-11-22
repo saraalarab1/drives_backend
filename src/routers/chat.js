@@ -1,7 +1,6 @@
 import { Router } from "express";
 import createConnection from "../../config/databaseConfig.js";
 import { fetchData, generateCreateQuery } from "../functions/functions.js";
-import formatUTCDate from "../utilities/format-date.js";
 import { connectedUsers } from "../../config/websocketConfig.js";
 
 var connection = createConnection();
@@ -13,20 +12,23 @@ router.get("/getAllChats/:id", (req, res) => {
       `SELECT Z.ID, driverId, driverFirstName, driverLastName, riderId, firstName as riderFirstName, lastName as riderLastName, message, date FROM STUDENT JOIN
       (SELECT Y.ID, firstName as driverFirstName, lastName as driverLastName, driverId, riderId, message, date FROM STUDENT JOIN
       (SELECT X.ID, X.studentId AS riderId, RIDE.studentId AS driverId, message, date FROM RIDE JOIN
-      (SELECT CHAT.ID, rideId, CHAT.studentId, message, date FROM CHAT JOIN MESSAGE ORDER BY date DESC LIMIT 1) X
-      ON RIDE.ID = X.rideId WHERE RIDE.studentId = ${studentId} OR X.studentId = ${studentId}) Y
+      (SELECT CHAT.ID, rideId, CHAT.studentId, message, date FROM CHAT JOIN MESSAGE
+      ON CHAT.ID = MESSAGE.chatId ORDER BY date DESC) X
+      ON RIDE.ID = X.rideId WHERE RIDE.studentId = ${studentId} OR X.studentId = ${studentId} GROUP BY (ID)) Y
       ON STUDENT.ID = Y.driverId) Z
-      ON STUDENT.ID = Z.riderId;`,
+      ON STUDENT.ID = Z.riderId ORDER BY date DESC;`,
       function (error, results) {
         if (results) {
-          const output = results.map(result => {
-            const fetchedDate = new Date(result.date)
-            fetchedDate.setMinutes(fetchedDate.getMinutes() - fetchedDate.getTimezoneOffset())
+          const output = results.map((result) => {
+            const fetchedDate = new Date(result.date);
+            fetchedDate.setMinutes(
+              fetchedDate.getMinutes() - fetchedDate.getTimezoneOffset()
+            );
             return {
               ...result,
-              date: fetchedDate.toISOString()
-            }
-          })
+              date: fetchedDate.toISOString(),
+            };
+          });
           res.status(200).json(output);
         } else {
           res.status(400).json("Unable to fetch chats.");
@@ -45,18 +47,19 @@ router.get("/:id", (req, res) => {
     connection.query(
       `SELECT * FROM MESSAGE WHERE chatId = ${chatId} ORDER BY date DESC`,
       function (error, results) {
-        if (results){
-          const output = results.map(result => {
-            const fetchedDate = new Date(result.date)
-            fetchedDate.setMinutes(fetchedDate.getMinutes() - fetchedDate.getTimezoneOffset())
+        if (results) {
+          const output = results.map((result) => {
+            const fetchedDate = new Date(result.date);
+            fetchedDate.setMinutes(
+              fetchedDate.getMinutes() - fetchedDate.getTimezoneOffset()
+            );
             return {
               ...result,
-              date: fetchedDate.toISOString()
-            }
-          })
+              date: fetchedDate.toISOString(),
+            };
+          });
           res.status(200).json(output);
-        }
-        else {
+        } else {
           res.status(400).json("Could not get chat.");
           console.error(error);
         }
@@ -68,13 +71,14 @@ router.get("/:id", (req, res) => {
 });
 
 router.post("/", (req, res) => {
-  var { rideId, studentId, firstName, date, receiverId } = req.body;
-  var data = fetchData({ rideId, studentId });
+  var { rideId, isDriver, driverId, riderId, firstName, date, receiverId } =
+    req.body;
+  var data = fetchData({ rideId, studentId: riderId });
   const query = generateCreateQuery(data[0], [data[1]], "CHAT");
   connection.query(query, function (error, results) {
     if (results) {
       const messageQueryParams = fetchData({
-        studentId,
+        studentId: isDriver ? driverId : riderId,
         chatId: results.insertId,
         message: `${firstName} initiated chat.`,
         date,
@@ -110,7 +114,7 @@ router.post("/sendMessage", (req, res) => {
     studentId,
     chatId,
     message,
-    date
+    date,
   });
   const query = generateCreateQuery(data[0], [data[1]], "MESSAGE");
   connection.query(query, function (error, results) {
