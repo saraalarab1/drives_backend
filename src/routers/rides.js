@@ -305,7 +305,7 @@ router.patch("/:id", (req, res) => {
             connectedUsers[riderId.toString()].send(
               JSON.stringify({
                 type: "UPDATE_STOP_REQUESTS",
-                content: "",
+                content: id,
               })
             );
           } catch (e) {}

@@ -6,7 +6,7 @@ import {
   generateCreateQuery,
   generateDeleteQuery,
 } from "../functions/functions.js";
-import AWS from 'aws-sdk';
+import AWS from "aws-sdk";
 import dotenv from "dotenv";
 dotenv.config();
 var connection = createConnection();
@@ -23,32 +23,30 @@ router.get("/", (req, res) => {
 });
 
 router.get("/:id", (req, res) => {
-    const id = parseInt(req.params.id);
-    connection.query(
-        `SELECT * FROM STUDENT WHERE ID= ${id}`,
-        function(error, results) {
-            if (results) {
-                var user = results;
-                if (user.length > 0) res.status(200).json(user.pop());
-                else res.status(404).send("User not found.");
-            } else console.error(error);
-        }
-    );
+  const id = parseInt(req.params.id);
+  connection.query(
+    `SELECT * FROM STUDENT WHERE ID= ${id}`,
+    function (error, results) {
+      if (results) {
+        var user = results;
+        if (user.length > 0) res.status(200).json(user.pop());
+        else res.status(404).send("User not found.");
+      } else console.error(error);
+    }
+  );
 });
 
 router.patch("/:id", (req, res) => {
-  const id = req.params.id
-    console.log(req.body);
-    connection.query(
-        `UPDATE STUDENT SET firstName = '${req.body.firstName}', lastName = '${req.body.lastName}', phoneNumber = ${req.body.phoneNumber}, dateOfBirth = '${req.body.dateOfBirth}'  WHERE ID = ${id};`,
-        function(error, results) {
-            if (results) {
-                console.log(results);
-                res.status(200).json(results);
-            } else console.error(error);
-        }
-    )
-})
+  const id = req.params.id;
+  connection.query(
+    `UPDATE STUDENT SET firstName = '${req.body.firstName}', lastName = '${req.body.lastName}', phoneNumber = ${req.body.phoneNumber}, dateOfBirth = '${req.body.dateOfBirth}'  WHERE ID = ${id};`,
+    function (error, results) {
+      if (results) {
+        res.status(200).json(results);
+      } else console.error(error);
+    }
+  );
+});
 
 router.patch("/photo/:id", (req, res) => {
   const id = parseInt(req.params.id);
@@ -57,110 +55,104 @@ router.patch("/photo/:id", (req, res) => {
   //configuring the AWS environment
   AWS.config.update({
     accessKeyId: process.env.AWSAccessKeyId,
-    secretAccessKey:process.env.AWSSecretKey
+    secretAccessKey: process.env.AWSSecretKey,
   });
   var s3bucket = new AWS.S3();
   // Setting up S3 upload parameters
   const params = {
-    Bucket: 'profileimages-db',
-    ACL: 'public-read',
+    Bucket: "profileimages-db",
+    ACL: "public-read",
     Key: req.params.id,
-    Body: image.uri
+    Body: image.uri,
   };
   s3bucket.upload(params, async (err, data) => {
     if (err) {
-      console.log(err)
-        res.status(500).json({ message: err });
+      console.error(err);
+      res.status(500).json({ message: err });
     } else {
-        res.status(200).json({
-            message:"upload successfull"
-        });
+      res.status(200).json({
+        message: "upload successfull",
+      });
     }
+  });
 });
-
-})
 
 router.post("/license/:id", (req, res) => {
   const id = parseInt(req.params.id);
   var image = req.body;
-  console.log(image)
   connection.query(
     `UPDATE STUDENT SET drivingLicense = 'INSERTED' WHERE ID = ${id};`,
     function (error, results) {
       if (results) {
-        console.log('updated licesne')
-      } else console.error(error);
+        res.status(201).json("Added license");
+      } else {
+        console.error(error);
+        res.status(400).json("Couldn't add license");
+      }
     }
   );
 
   //configuring the AWS environment
   AWS.config.update({
     accessKeyId: process.env.AWSAccessKeyId,
-    secretAccessKey:process.env.AWSSecretKey
+    secretAccessKey: process.env.AWSSecretKey,
   });
   var s3bucket = new AWS.S3();
   // Setting up S3 upload parameters
   const params = {
-    Bucket: 'licensecard-db',
-    ACL: 'public-read',
+    Bucket: "licensecard-db",
+    ACL: "public-read",
     Key: req.params.id,
-    Body: image.uri
+    Body: image.uri,
   };
   s3bucket.upload(params, async (err, data) => {
     if (err) {
-      console.log(err)
-        res.status(500).json({ message: err });
+      console.error(err);
+      res.status(500).json({ message: err });
     } else {
-        res.status(200).json({
-            message:"upload successfull"
-        });
+      res.status(200).json({
+        message: "upload successfull",
+      });
     }
+  });
 });
-
-})
 
 router.get("/license/:id", (req, res) => {
   const id = parseInt(req.params.id);
   var image = req.body;
-  console.log(image)
   connection.query(
     `SELECT drivingLicense FROM STUDENT WHERE ID = ${id};`,
     function (error, results) {
       if (results) {
         let drivingLicense = results;
-        if (drivingLicense.length > 0) res.status(200).json(drivingLicense.pop());
+        if (drivingLicense.length > 0)
+          res.status(200).json(drivingLicense.pop());
         else res.status(404).send("car not found.");
       } else console.error(error);
     }
   );
-
-
-})
-
-
+});
 
 router.get("/photo/:id", (req, res) => {
   //configuring the AWS environment
-AWS.config.update({
-  accessKeyId: process.env.AWSAccessKeyId,
-  secretAccessKey:process.env.AWSSecretKey
+  AWS.config.update({
+    accessKeyId: process.env.AWSAccessKeyId,
+    secretAccessKey: process.env.AWSSecretKey,
+  });
+  var s3bucket = new AWS.S3();
+
+  // Setting up S3 upload parameters
+  var params = { Bucket: "profileimages-db", Key: req.params.id };
+  s3bucket.getObject(params, function (err, data) {
+    if (!err) {
+      res.writeHead(200, { "Content-Type": "image/jpeg" });
+      res.write(data.Body, "binary");
+      res.end(null, "binary");
+    } else {
+      res.status(500);
+    }
+  });
 });
-var s3bucket = new AWS.S3();
-
-// Setting up S3 upload parameters
-var params = { Bucket: 'profileimages-db', Key: req.params.id};
-s3bucket.getObject(params, function(err, data) {
-  if(!err){
-    res.writeHead(200, {'Content-Type': 'image/jpeg'});
-    res.write(data.Body, 'binary');
-    res.end(null, 'binary');
-}else{
-  res.status(500)
-}
-});
-
-
-})
 
 router.get("/car/:id", (req, res) => {
   const id = parseInt(req.params.id);
@@ -182,27 +174,22 @@ router.patch("/car/:id", (req, res) => {
 
   connection.query(
     `UPDATE CAR SET model = '${req.body.model}', number = '${req.body.number}', color = '${req.body.color}', description = '${req.body.description}'  WHERE studentId = ${id};`,
-    function(error, results) {
-        if (results) {
-            console.log(results);
-            res.status(200).json(results);
-        } else console.error(error);
+    function (error, results) {
+      if (results) {
+        res.status(200).json(results);
+      } else console.error(error);
     }
-)
+  );
 });
-
 
 router.post("/car", (req, res) => {
   var par = req.body;
   var data = fetchData(par);
-  console.log(par)
   const query = generateCreateQuery(data[0], [data[1]], "CAR");
   connection.query(query, function (error, results) {
-    if (results) {
-      console.log(results);
-    }
+    if (results) res.status(200).json("Added car.");
+    else res.status(400).json("Couldn't add car.");
   });
-  res.status(200).json("add car ");
 });
 
 router.delete("/car/:id", (req, res) => {
@@ -210,11 +197,8 @@ router.delete("/car/:id", (req, res) => {
   var query = generateDeleteQuery(id, "studentId", "CAR");
 
   connection.query(query, function (error, results) {
-    if (results) {
-      console.log(results);
-    } else {
-      console.error(error);
-    }
+    if (results) res.status(200).json("Deleted car.");
+    else res.status(400).json("Couldn't delete car.");
   });
   res.status(200).json("Deleted car");
 });
