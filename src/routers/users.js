@@ -40,7 +40,7 @@ router.patch("/:id", (req, res) => {
   const id = req.params.id
     console.log(req.body);
     connection.query(
-        `UPDATE STUDENT SET firstName = '${req.body.firstName}', lastName = '${req.body.lastName}', phoneNumber = ${req.body.phoneNumber}, dateOfBirth = '${req.body.dateOfBirth}' WHERE ID = ${id};`,
+        `UPDATE STUDENT SET firstName = '${req.body.firstName}', lastName = '${req.body.lastName}', phoneNumber = ${req.body.phoneNumber}, dateOfBirth = '${req.body.dateOfBirth}'  WHERE ID = ${id};`,
         function(error, results) {
             if (results) {
                 console.log(results);
@@ -80,6 +80,65 @@ router.patch("/photo/:id", (req, res) => {
 
 })
 
+router.post("/license/:id", (req, res) => {
+  const id = parseInt(req.params.id);
+  var image = req.body;
+  console.log(image)
+  connection.query(
+    `UPDATE STUDENT SET drivingLicense = 'INSERTED' WHERE ID = ${id};`,
+    function (error, results) {
+      if (results) {
+        console.log('updated licesne')
+      } else console.error(error);
+    }
+  );
+
+  //configuring the AWS environment
+  AWS.config.update({
+    accessKeyId: process.env.AWSAccessKeyId,
+    secretAccessKey:process.env.AWSSecretKey
+  });
+  var s3bucket = new AWS.S3();
+  // Setting up S3 upload parameters
+  const params = {
+    Bucket: 'licensecard-db',
+    ACL: 'public-read',
+    Key: req.params.id,
+    Body: image.uri
+  };
+  s3bucket.upload(params, async (err, data) => {
+    if (err) {
+      console.log(err)
+        res.status(500).json({ message: err });
+    } else {
+        res.status(200).json({
+            message:"upload successfull"
+        });
+    }
+});
+
+})
+
+router.get("/license/:id", (req, res) => {
+  const id = parseInt(req.params.id);
+  var image = req.body;
+  console.log(image)
+  connection.query(
+    `SELECT drivingLicense FROM STUDENT WHERE ID = ${id};`,
+    function (error, results) {
+      if (results) {
+        let drivingLicense = results;
+        if (drivingLicense.length > 0) res.status(200).json(drivingLicense.pop());
+        else res.status(404).send("car not found.");
+      } else console.error(error);
+    }
+  );
+
+
+})
+
+
+
 router.get("/photo/:id", (req, res) => {
   //configuring the AWS environment
 AWS.config.update({
@@ -118,9 +177,25 @@ router.get("/car/:id", (req, res) => {
   );
 });
 
+router.patch("/car/:id", (req, res) => {
+  const id = parseInt(req.params.id);
+
+  connection.query(
+    `UPDATE CAR SET model = '${req.body.model}', number = '${req.body.number}', color = '${req.body.color}', description = '${req.body.description}'  WHERE studentId = ${id};`,
+    function(error, results) {
+        if (results) {
+            console.log(results);
+            res.status(200).json(results);
+        } else console.error(error);
+    }
+)
+});
+
+
 router.post("/car", (req, res) => {
   var par = req.body;
   var data = fetchData(par);
+  console.log(par)
   const query = generateCreateQuery(data[0], [data[1]], "CAR");
   connection.query(query, function (error, results) {
     if (results) {
