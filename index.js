@@ -12,12 +12,19 @@ import cors from "cors";
 import createConnection from "./config/databaseConfig.js";
 import chatRouter from "./src/routers/chat.js";
 import { createWebsocketServer } from "./config/websocketConfig.js";
+import multer from 'multer'
+
 const app = express();
+const upload = multer({
+    // file size limitation in bytes
+    limits: { fileSize: 52428800 },
+  })
 
 dotenv.config();
 app.use(cors({ credentials: true, origin: "http://localhost:3000" }));
 app.use(cookieParser());
 app.use(express.json());
+app.use(upload.array()); 
 var connection = createConnection();
 var wsUsers = createWebsocketServer();
 

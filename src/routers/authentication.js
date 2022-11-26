@@ -11,9 +11,8 @@ const router = Router();
 
 router.post("/register", (req, res) => {
   var par = req.body;
-
   connection.query(
-    `SELECT * FROM STUDENT WHERE universityEmail = ${par.universityEmail}`,
+    `SELECT * FROM STUDENT WHERE universityEmail = '${par.universityEmail}'`,
     function (error, results) {
       if (results) {
         if (results.length > 0) res.status(400).json("Email already in use.");
@@ -24,13 +23,13 @@ router.post("/register", (req, res) => {
             .toString("hex");
 
           var data = fetchData({
-            firstName: par.firstName,
-            lastName: par.lastName,
-            phoneNumber: par.phoneNumber,
+            firstName: par.firstname,
+            lastName: par.lastname,
+            phoneNumber: par.phonenumber,
             dateOfBirth: par.dateOfBirth,
             universityEmail: par.universityEmail,
             verifiedDriver: "NULL",
-            campusId: par.campusId,
+            campusId: par.campusid,
             salt,
             hash,
           });
@@ -74,7 +73,7 @@ router.post("/login", (req, res) => {
           const valid =
             hash ===
             crypto
-              .pbkdf2Sync(password, salt, 1000, 64, "sha512")
+              .pbkdf2Sync(par.password, salt, 1000, 64, "sha512")
               .toString("hex");
           if (!valid) res.status(400).send("Invalid username or password.");
           else {

@@ -1,5 +1,4 @@
 import { Router } from "express";
-import { users } from "../utilities/mock-data.js";
 import createConnection from "../../config/databaseConfig.js";
 import {
   fetchData,
@@ -8,8 +7,22 @@ import {
 } from "../functions/functions.js";
 import AWS from "aws-sdk";
 import dotenv from "dotenv";
+import multer from "multer";
+
 dotenv.config();
 var connection = createConnection();
+
+AWS.config.update({
+  accessKeyId: process.env.AWSAccessKeyId,
+  secretAccessKey: process.env.AWSSecretKey,
+});
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  // file size limitation in bytes
+  limits: { fileSize: 52428800 },
+});
+
 const router = Router();
 
 router.get("/", (req, res) => {
@@ -48,80 +61,70 @@ router.patch("/:id", (req, res) => {
   );
 });
 
-router.patch("/photo/:id", (req, res) => {
-  const id = parseInt(req.params.id);
-  var image = req.body;
-
+router.post("/photo/:id", (req, res) => {
   //configuring the AWS environment
-  AWS.config.update({
-    accessKeyId: process.env.AWSAccessKeyId,
-    secretAccessKey: process.env.AWSSecretKey,
-  });
   var s3bucket = new AWS.S3();
   // Setting up S3 upload parameters
+  var buffer = Buffer.from(
+    req.body.base64.replace(/^data:image\/\w+;base64,/, ""),
+    "base64"
+  );
   const params = {
     Bucket: "profileimages-db",
     ACL: "public-read",
     Key: req.params.id,
-    Body: image.uri,
+    Body: buffer,
+    ContentEncoding: "base64",
   };
-  s3bucket.upload(params, async (err, data) => {
+  s3bucket.putObject(params, async (err, data) => {
     if (err) {
       console.error(err);
       res.status(500).json({ message: err });
     } else {
       res.status(200).json({
-        message: "upload successfull",
+        message: "Upload successful",
       });
     }
   });
 });
 
-router.post("/license/:id", (req, res) => {
+router.post("/license/:id", upload.single("license"), (req, res) => {
   const id = parseInt(req.params.id);
   var image = req.body;
-  connection.query(
-    `UPDATE STUDENT SET drivingLicense = 'INSERTED' WHERE ID = ${id};`,
-    function (error, results) {
-      if (results) {
-        res.status(201).json("Added license");
-      } else {
-        console.error(error);
-        res.status(400).json("Couldn't add license");
-      }
-    }
-  );
 
-  //configuring the AWS environment
-  AWS.config.update({
-    accessKeyId: process.env.AWSAccessKeyId,
-    secretAccessKey: process.env.AWSSecretKey,
-  });
   var s3bucket = new AWS.S3();
   // Setting up S3 upload parameters
   const params = {
     Bucket: "licensecard-db",
     ACL: "public-read",
     Key: req.params.id,
-    Body: image.uri,
+    Body: req.file.buffer,
   };
+
   s3bucket.upload(params, async (err, data) => {
     if (err) {
       console.error(err);
       res.status(500).json({ message: err });
     } else {
-      res.status(200).json({
-        message: "upload successfull",
-      });
+      connection.query(
+        `UPDATE STUDENT SET verifiedDriver = 'INSERTED' WHERE ID = ${id};`,
+        function (error, results) {
+          if (results) {
+            res.status(200).json("Added license");
+          } else {
+            console.error(error);
+            res.status(400).json("Couldn't add license");
+          }
+        }
+      );
     }
   });
 });
 
 router.get("/license/:id", (req, res) => {
   const id = parseInt(req.params.id);
-  var image = req.body;
   connection.query(
-    `SELECT drivingLicense FROM STUDENT WHERE ID = ${id};`,
+    `SELECT verifiedDriver FROM STUDENT WHERE ID = ${id};`,
     function (error, results) {
       if (results) {
         let drivingLicense = results;
@@ -145,9 +148,13 @@ router.get("/photo/:id", (req, res) => {
   var params = { Bucket: "profileimages-db", Key: req.params.id };
   s3bucket.getObject(params, function (err, data) {
     if (!err) {
-      res.writeHead(200, { "Content-Type": "image/jpeg" });
-      res.write(data.Body, "binary");
-      res.end(null, "binary");
+      try {
+        const bas64 = data.Body.toString("base64");
+        const imgSrc = "data:image/jpeg;base64," + bas64;
+        res.status(200).send(imgSrc);
+      } catch (e) {
+        res.status(400).send(e);
+      }
     } else {
       res.status(500);
     }
@@ -200,7 +207,6 @@ router.delete("/car/:id", (req, res) => {
     if (results) res.status(200).json("Deleted car.");
     else res.status(400).json("Couldn't delete car.");
   });
-  res.status(200).json("Deleted car");
 });
 
 export default router;
