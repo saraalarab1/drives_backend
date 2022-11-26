@@ -1,15 +1,15 @@
 import mysql from "mysql";
 
 var config = {
-  host: "sql7.freemysqlhosting.net",
-  user: "sql7573674",
-  password: "2RSm9265gD",
-  database: "sql7573674",
+  host: "sql8.freemysqlhosting.net",
+  user: "sql8581012",
+  password: "K55WARXsWg",
+  database: "sql8581012",
 };
 // var config = {
 //     host: 'localhost',
-//     user: 'root',
-//     password: 'root',
+//     user: 'groot',
+//     password: 'groot1234',
 //     database: 'drives'
 // }
 
