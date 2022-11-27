@@ -47,55 +47,55 @@ router.get("/", (req, res) => {
 
     var queryConditions = buildQueryConditions(
         ["studentId", driverId], ["studentId", searcherId, "!="], ["departureCoordinates", departureCoordinates], ["destinationCoordinates", destinationCoordinates],
-        rideStatus === "NOT_PENDING" ?
-        ["rideStatus", "PENDING", "!="] :
-        ["rideStatus", rideStatus], ["numberOfAvailableSeats", numberOfSeats, ">="], ["pricePerRider", [minPricePerRider, maxPricePerRider]],
-        dateOfDeparture ?
-        [
+        rideStatus === "NOT_PENDING" ? ["rideStatus", "PENDING", "!="] : ["rideStatus", rideStatus], ["numberOfAvailableSeats", numberOfSeats, ">="], ["pricePerRider", [minPricePerRider, maxPricePerRider]],
+        dateOfDeparture ? [
             "dateOfDeparture", [formatUTCDate(minDateTime), formatUTCDate(maxDateTime)],
         ] :
         undefined
     );
 
-  queryConditions = orderQuery(queryConditions, orderBy, descending);
-  connection.query(
-    `SELECT * FROM RIDE${queryConditions};`,
-    function (error, results) {
-      if (results) {
-        if (results.length > 0) {
-          let rides = results.map((ride) => {
-            const fetchedDate = new Date(ride.dateOfDeparture);
-            fetchedDate.setMinutes(
-              fetchedDate.getMinutes() - fetchedDate.getTimezoneOffset()
-            );
-            return {
-              ...ride,
-              departureCoordinates: JSON.parse(ride.departureCoordinates),
-              destinationCoordinates: JSON.parse(ride.destinationCoordinates),
-              dateOfDeparture: new Date(fetchedDate),
-              dateOfCreation: new Date(ride.dateOfCreation),
-            };
-          });
-          if (pickupCoordinates) {
-            try {
-              const { latitude, longitude } = JSON.parse(pickupCoordinates);
-              res
-                .status(200)
-                .json(searchForDrivers(latitude, longitude, rides));
-            } catch (e) {
-              console.error(e);
+    queryConditions = orderQuery(queryConditions, orderBy, descending);
+    connection.query(
+        `SELECT * FROM RIDE${queryConditions};`,
+        function(error, results) {
+            if (results) {
+                if (results.length > 0) {
+                    let rides = results.map((ride) => {
+                        const fetchedDate = new Date(ride.dateOfDeparture);
+                        fetchedDate.setMinutes(
+                            fetchedDate.getMinutes() - fetchedDate.getTimezoneOffset()
+                        );
+                        return {
+                            ...ride,
+                            departureCoordinates: JSON.parse(ride.departureCoordinates),
+                            destinationCoordinates: JSON.parse(ride.destinationCoordinates),
+                            dateOfDeparture: new Date(fetchedDate),
+                            dateOfCreation: new Date(ride.dateOfCreation),
+                        };
+                    });
+                    if (pickupCoordinates) {
+                        try {
+                            const { latitude, longitude } = JSON.parse(pickupCoordinates);
+                            res
+                                .status(200)
+                                .json(searchForDrivers(latitude, longitude, rides));
+                        } catch (e) {
+                            console.error(e);
+                        }
+                    }
+                }
             }
         }
     );
 });
 
-router.post("/", async (req, res) => {
-  var par = req.body;
-  const rideDetails = {
-    ...par,
-    dateOfDeparture: par.dateOfDeparture,
-    dateOfCreation: formatUTCDate(new Date()),
-  };
+router.post("/", async(req, res) => {
+    var par = req.body;
+    const rideDetails = {
+        ...par,
+        dateOfDeparture: par.dateOfDeparture,
+        dateOfCreation: formatUTCDate(new Date()),
+    };
 
     var store = false;
     if (par.route) {
@@ -152,9 +152,7 @@ router.get("/stopRequests", (req, res) => {
             if (isDriver) {
                 const queryConditions = buildQueryConditions(
                     ["ID", rideId], ["studentId", studentId],
-                    rideStatus === "NOT_PENDING" ?
-                    ["rideStatus", "PENDING", "!="] :
-                    ["rideStatus", rideStatus]
+                    rideStatus === "NOT_PENDING" ? ["rideStatus", "PENDING", "!="] : ["rideStatus", rideStatus]
                 );
                 query = `SELECT * FROM STOPREQUEST WHERE ${
       requestStatus ? `requestStatus = '${requestStatus}' AND ` : ""
