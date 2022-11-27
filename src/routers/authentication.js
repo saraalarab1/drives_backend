@@ -12,6 +12,7 @@ const router = Router();
 router.post('/register', (req, res) => {
     var par = req.body;
     var data = fetchData(par)
+    console.log(data);
     const query = generateCreateQuery(data[0], [data[1]], "STUDENT")
         // const salt = await bcrypt.genSalt();
         // const hashPassword = await bcrypt.hash(password, salt);
@@ -62,6 +63,7 @@ router.delete('/logout', (req, res) => {
 
 router.get('/universities', (req, res) => {
     connection.query(`SELECT ID,name FROM UNIVERSITY `, function(error, results) {
+        console.log('universities');
         if (results) {
             let universities = results;
             res.json(universities);

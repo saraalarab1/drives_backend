@@ -4,9 +4,9 @@ import searchForDrivers from "../utilities/searchForDrivers.js";
 import buildQueryConditions from "../utilities/query-builder.js";
 import formatUTCDate from "../utilities/format-date.js";
 import {
-  fetchData,
-  generateCreateQuery,
-  generateDeleteQuery,
+    fetchData,
+    generateCreateQuery,
+    generateDeleteQuery,
 } from "../functions/functions.js";
 import fetch from "node-fetch";
 import dotenv from "dotenv";
@@ -19,150 +19,143 @@ const router = Router();
 const GOOGLE_MAPS_KEY = process.env.MAPS_API_KEY;
 
 router.get("/", (req, res) => {
-  const {
-    driverId,
-    searcherId,
-    departureCoordinates,
-    destinationCoordinates,
-    pickupCoordinates,
-    dateOfDeparture,
-    numberOfSeats,
-    minPricePerRider,
-    maxPricePerRider,
-    rideStatus,
-    orderBy,
-    descending,
-  } = req.query;
+    const {
+        driverId,
+        searcherId,
+        departureCoordinates,
+        destinationCoordinates,
+        pickupCoordinates,
+        dateOfDeparture,
+        numberOfSeats,
+        minPricePerRider,
+        maxPricePerRider,
+        rideStatus,
+        orderBy,
+        descending,
+    } = req.query;
 
-  let minDateTime = undefined;
-  let maxDateTime = undefined;
+    let minDateTime = undefined;
+    let maxDateTime = undefined;
 
-  if (dateOfDeparture) {
-    minDateTime = new Date(dateOfDeparture);
-    maxDateTime = new Date(dateOfDeparture);
+    if (dateOfDeparture) {
+        minDateTime = new Date(dateOfDeparture);
+        maxDateTime = new Date(dateOfDeparture);
 
-    minDateTime.setHours(maxDateTime.getHours() - 2);
-    maxDateTime.setHours(maxDateTime.getHours() + 2);
-  }
-
-  var queryConditions = buildQueryConditions(
-    ["studentId", driverId],
-    ["studentId", searcherId, "!="],
-    ["departureCoordinates", departureCoordinates],
-    ["destinationCoordinates", destinationCoordinates],
-    rideStatus === "NOT_PENDING"
-      ? ["rideStatus", "PENDING", "!="]
-      : ["rideStatus", rideStatus],
-    ["numberOfAvailableSeats", numberOfSeats, ">="],
-    ["pricePerRider", [minPricePerRider, maxPricePerRider]],
-    dateOfDeparture
-      ? [
-          "dateOfDeparture",
-          [formatUTCDate(minDateTime), formatUTCDate(maxDateTime)],
-        ]
-      : undefined
-  );
-
-  queryConditions = orderQuery(queryConditions, orderBy, descending);
-  connection.query(
-    `SELECT * FROM RIDE${queryConditions};`,
-    function (error, results) {
-      if (results) {
-        if (results.length > 0) {
-          let rides = results.map((ride) => ({
-            ...ride,
-            departureCoordinates: JSON.parse(ride.departureCoordinates),
-            destinationCoordinates: JSON.parse(ride.destinationCoordinates),
-            dateOfDeparture: new Date(ride.dateOfDeparture),
-            dateOfCreation: new Date(ride.dateOfCreation),
-          }));
-          if (pickupCoordinates) {
-            try {
-              const { latitude, longitude } = JSON.parse(pickupCoordinates);
-              res
-                .status(200)
-                .json(searchForDrivers(latitude, longitude, rides));
-            } catch (e) {
-              console.error(e);
-            }
-          } else res.status(200).json(rides);
-        } else res.status(200).json([]);
-      } else {
-        console.error(error);
-      }
+        minDateTime.setHours(maxDateTime.getHours() - 2);
+        maxDateTime.setHours(maxDateTime.getHours() + 2);
     }
-  );
+
+    var queryConditions = buildQueryConditions(
+        ["studentId", driverId], ["studentId", searcherId, "!="], ["departureCoordinates", departureCoordinates], ["destinationCoordinates", destinationCoordinates],
+        rideStatus === "NOT_PENDING" ?
+        ["rideStatus", "PENDING", "!="] :
+        ["rideStatus", rideStatus], ["numberOfAvailableSeats", numberOfSeats, ">="], ["pricePerRider", [minPricePerRider, maxPricePerRider]],
+        dateOfDeparture ?
+        [
+            "dateOfDeparture", [formatUTCDate(minDateTime), formatUTCDate(maxDateTime)],
+        ] :
+        undefined
+    );
+
+    queryConditions = orderQuery(queryConditions, orderBy, descending);
+    connection.query(
+        `SELECT * FROM RIDE ${queryConditions};`,
+        function(error, results) {
+            if (results) {
+                if (results.length > 0) {
+                    let rides = results.map((ride) => ({
+                        ...ride,
+                        departureCoordinates: JSON.parse(ride.departureCoordinates),
+                        destinationCoordinates: JSON.parse(ride.destinationCoordinates),
+                        dateOfDeparture: new Date(ride.dateOfDeparture),
+                        dateOfCreation: new Date(ride.dateOfCreation),
+                    }));
+                    if (pickupCoordinates) {
+                        try {
+                            const { latitude, longitude } = JSON.parse(pickupCoordinates);
+                            res
+                                .status(200)
+                                .json(searchForDrivers(latitude, longitude, rides));
+                        } catch (e) {
+                            console.error(e);
+                        }
+                    } else res.status(200).json(rides);
+                } else res.status(200).json([]);
+            } else {
+                console.error(error);
+            }
+        }
+    );
 });
 
-router.post("/", async (req, res) => {
-  var par = req.body;
-  const rideDetails = {
-    ...par,
-    dateOfDeparture: formatUTCDate(new Date(par.dateOfDeparture)),
-    dateOfCreation: formatUTCDate(new Date()),
-  };
+router.post("/", async(req, res) => {
+    var par = req.body;
+    const rideDetails = {
+        ...par,
+        dateOfDeparture: formatUTCDate(new Date(par.dateOfDeparture)),
+        dateOfCreation: formatUTCDate(new Date()),
+    };
 
-  var store = false;
-  if (par.route) {
-    store = true;
-  } else {
-    const url =
-      "https://maps.googleapis.com/maps/api/directions/json?origin=" +
-      `${JSON.parse(rideDetails.departureCoordinates).latitude},${
+    var store = false;
+    if (par.route) {
+        store = true;
+    } else {
+        const url =
+            "https://maps.googleapis.com/maps/api/directions/json?origin=" +
+            `${JSON.parse(rideDetails.departureCoordinates).latitude},${
         JSON.parse(rideDetails.departureCoordinates).longitude
       }` +
-      "&destination=" +
-      `${JSON.parse(rideDetails.destinationCoordinates).latitude},${
+            "&destination=" +
+            `${JSON.parse(rideDetails.destinationCoordinates).latitude},${
         JSON.parse(rideDetails.destinationCoordinates).longitude
       }` +
-      "&alternatives=true" +
-      "&key=" +
-      GOOGLE_MAPS_KEY;
+            "&alternatives=true" +
+            "&key=" +
+            GOOGLE_MAPS_KEY;
 
-    const result = await fetch(url).then(async (res) => {
-      const data = await res.json();
-      if (data.status === "NOT_FOUND") return undefined;
-      else return data.routes.map((route) => route.overview_polyline.points);
-    });
-    if (!result) res.status(400).json("No route found.");
-    else {
-      if (result.length === 1) {
-        rideDetails.route = result[0];
-        store = true;
-      } else
-        res
-          .status(200)
-          .json({ status: "REQUIRE_ROUTE_SELECTION", content: result });
+        const result = await fetch(url).then(async(res) => {
+            const data = await res.json();
+            if (data.status === "NOT_FOUND") return undefined;
+            else return data.routes.map((route) => route.overview_polyline.points);
+        });
+        if (!result) res.status(400).json("No route found.");
+        else {
+            if (result.length === 1) {
+                rideDetails.route = result[0];
+                store = true;
+            } else
+                res
+                .status(200)
+                .json({ status: "REQUIRE_ROUTE_SELECTION", content: result });
+        }
     }
-  }
-  if (store) {
-    var data = fetchData(rideDetails);
-    const query = generateCreateQuery(data[0], [data[1]], "RIDE");
-    connection.query(query.replace(/\\/g, "\\\\"), function (error, results) {
-      if (results) {
-        res.status(201).json({ status: "SUCCESS" });
-      } else {
-        console.error(error);
-        res
-          .status(400)
-          .json({ status: "FAILED", content: "Failed to create ride." });
-      }
-    });
-  }
+    if (store) {
+        var data = fetchData(rideDetails);
+        const query = generateCreateQuery(data[0], [data[1]], "RIDE");
+        connection.query(query.replace(/\\/g, "\\\\"), function(error, results) {
+            if (results) {
+                res.status(201).json({ status: "SUCCESS" });
+            } else {
+                console.error(error);
+                res
+                    .status(400)
+                    .json({ status: "FAILED", content: "Failed to create ride." });
+            }
+        });
+    }
 });
 
 router.get("/stopRequests", (req, res) => {
-  const { rideId, studentId, isDriver, requestStatus, rideStatus } = req.query;
-  let query = "";
-  if (isDriver) {
-    const queryConditions = buildQueryConditions(
-      ["ID", rideId],
-      ["studentId", studentId],
-      rideStatus === "NOT_PENDING"
-        ? ["rideStatus", "PENDING", "!="]
-        : ["rideStatus", rideStatus]
-    );
-    query = `SELECT * FROM STOPREQUEST WHERE ${
+            const { rideId, studentId, isDriver, requestStatus, rideStatus } = req.query;
+            let query = "";
+            if (isDriver) {
+                const queryConditions = buildQueryConditions(
+                    ["ID", rideId], ["studentId", studentId],
+                    rideStatus === "NOT_PENDING" ?
+                    ["rideStatus", "PENDING", "!="] :
+                    ["rideStatus", rideStatus]
+                );
+                query = `SELECT * FROM STOPREQUEST WHERE ${
       requestStatus ? `requestStatus = '${requestStatus}' AND ` : ""
     }rideId = (SELECT DISTINCT ID AS rideId FROM RIDE${queryConditions});`;
   } else {
