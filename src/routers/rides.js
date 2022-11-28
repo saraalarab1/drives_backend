@@ -147,16 +147,19 @@ router.post("/", async(req, res) => {
 });
 
 router.get("/stopRequests", (req, res) => {
-            const { rideId, studentId, isDriver, requestStatus, rideStatus } = req.query;
-            let query = "";
-            if (isDriver) {
-                const queryConditions = buildQueryConditions(
-                    ["ID", rideId], ["studentId", studentId],
-                    rideStatus === "NOT_PENDING" ? ["rideStatus", "PENDING", "!="] : ["rideStatus", rideStatus]
-                );
-                query = `SELECT * FROM STOPREQUEST WHERE ${
+  const { rideId, studentId, isDriver, requestStatus, rideStatus } = req.query;
+  let query = "";
+  if (isDriver && isDriver === 'true') {
+    const queryConditions = buildQueryConditions(
+      ["ID", rideId],
+      ["studentId", studentId],
+      rideStatus === "NOT_PENDING"
+        ? ["rideStatus", "PENDING", "!="]
+        : ["rideStatus", rideStatus]
+    );
+    query = `SELECT * FROM STOPREQUEST WHERE ${
       requestStatus ? `requestStatus = '${requestStatus}' AND ` : ""
-    }rideId = (SELECT DISTINCT ID AS rideId FROM RIDE${queryConditions});`;
+    }rideId IN (SELECT DISTINCT ID AS rideId FROM RIDE${queryConditions});`;
   } else {
     const queryConditions = buildQueryConditions(
       ["rideId", rideId],
@@ -343,7 +346,19 @@ router.delete("/:id", (req, res) => {
   var id = req.params.id;
   var query = generateDeleteQuery(id, "ID", "RIDE");
   connection.query(query, function (error, results) {
-    if (results) res.status(200).json("Deleted ride.");
+    if (results){
+      Object.keys(connectedUsers).forEach((riderId) => {
+        try {
+          connectedUsers[riderId].send(
+            JSON.stringify({
+              type: "UPDATE_STOP_REQUESTS",
+              content: id,
+            })
+          );
+        } catch (e) {}
+      });
+      res.status(200).json("Deleted ride.");
+    }
     else
       res.status(400).json({ rideId: id, message: "Failed to delete ride." });
   });

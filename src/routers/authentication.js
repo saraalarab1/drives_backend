@@ -1,5 +1,5 @@
 import { Router } from "express";
-import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import { fetchData, generateCreateQuery } from "../functions/functions.js";
 import buildQueryConditions from "../utilities/query-builder.js";
@@ -11,21 +11,51 @@ const router = Router();
 
 router.post("/register", (req, res) => {
   var par = req.body;
-  var data = fetchData(par);
-  const query = generateCreateQuery(data[0], [data[1]], "STUDENT");
-  // const salt = await bcrypt.genSalt();
-  // const hashPassword = await bcrypt.hash(password, salt);
+  connection.query(
+    `SELECT * FROM STUDENT WHERE universityEmail = '${par.universityEmail}'`,
+    function (error, results) {
+      if (results) {
+        if (results.length > 0) res.status(400).json("Email already in use.");
+        else {
+          const salt = crypto.randomBytes(16).toString("hex");
+          const hash = crypto
+            .pbkdf2Sync(par.password, salt, 1000, 64, "sha512")
+            .toString("hex");
 
-  connection.query(query, function (error, results) {
-    if (results) {
-      const userId = results.insertId;
-      const accessToken = jwt.sign({ userId }, process.env.ACCESS_TOKEN_SECRET);
-      res.status(200).json({ accessToken, userId });
-    } else {
-      console.error(error);
+          var data = fetchData({
+            firstName: par.firstname,
+            lastName: par.lastname,
+            phoneNumber: par.phonenumber,
+            dateOfBirth: par.dateOfBirth,
+            universityEmail: par.universityEmail,
+            verifiedDriver: "NULL",
+            campusId: par.campusid,
+            salt,
+            hash,
+          });
+
+          const query = generateCreateQuery(data[0], [data[1]], "STUDENT");
+
+          connection.query(query, function (error, results) {
+            if (results) {
+              const userId = results.insertId;
+              const accessToken = jwt.sign(
+                { userId },
+                process.env.ACCESS_TOKEN_SECRET
+              );
+              res.status(200).json({ accessToken, userId });
+            } else {
+              console.error(error);
+            }
+          });
+        }
+      } else {
+        console.error(error);
+      }
     }
-  });
+  );
 });
+
 router.post("/login", (req, res) => {
   var par = req.body;
   var queryConditions = buildQueryConditions(
@@ -38,28 +68,31 @@ router.post("/login", (req, res) => {
       if (results) {
         if (results.length > 0) {
           let user = results.pop();
-          const match = req.body.password === user.password;
-          if (!match) return res.status(400).json({ msg: "Wrong Password" });
-          const userId = user.ID;
-          const firstName = user.firstName;
-          const lastName = user.lastName;
-          const email = user.email;
-          const accessToken = jwt.sign(
-            { userId, firstName, email },
-            process.env.ACCESS_TOKEN_SECRET
-          );
-          res.status(200).json({ accessToken, userId, firstName, lastName });
-        } else res.status(404).send("User not found.");
+
+          const { salt, hash } = user;
+          const valid =
+            hash ===
+            crypto
+              .pbkdf2Sync(par.password, salt, 1000, 64, "sha512")
+              .toString("hex");
+          if (!valid) res.status(400).send("Invalid username or password.");
+          else {
+            const userId = user.ID;
+            const firstName = user.firstName;
+            const lastName = user.lastName;
+            const email = user.email;
+            const accessToken = jwt.sign(
+              { userId, firstName, email },
+              process.env.ACCESS_TOKEN_SECRET
+            );
+            res.status(200).json({ accessToken, userId, firstName, lastName });
+          }
+        } else res.status(400).send("Invalid username or password.");
       } else {
         console.error(error);
       }
     }
   );
-});
-router.delete("/logout", (req, res) => {
-  user = req.data;
-  if (!user[0]) return res.sendStatus(204);
-  return res.sendStatus(200);
 });
 
 router.get("/universities", (req, res) => {
