@@ -52,10 +52,13 @@ router.get("/:id", (req, res) => {
 router.patch("/:id", (req, res) => {
   const id = req.params.id;
   connection.query(
-    `UPDATE STUDENT SET firstName = '${req.body.firstName}', lastName = '${req.body.lastName}', phoneNumber = ${req.body.phoneNumber}, dateOfBirth = '${req.body.dateOfBirth}'  WHERE ID = ${id};`,
+    `UPDATE STUDENT SET firstName = '${req.body.firstName}', lastName = '${req.body.lastName}', phoneNumber = '${req.body.phoneNumber}', dateOfBirth = '${req.body.dateOfBirth}'  WHERE ID = ${id};`,
     function (error, results) {
       if (results) {
-        res.status(200).json(results);
+        res.status(200).json({
+          firstName: req.body.firstName,
+          lastName: req.body.lastName,
+        });
       } else console.error(error);
     }
   );

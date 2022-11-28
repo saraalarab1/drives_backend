@@ -160,7 +160,7 @@ router.post("/", async (req, res) => {
 router.get("/stopRequests", (req, res) => {
   const { rideId, studentId, isDriver, requestStatus, rideStatus } = req.query;
   let query = "";
-  if (isDriver) {
+  if (isDriver && isDriver === 'true') {
     const queryConditions = buildQueryConditions(
       ["ID", rideId],
       ["studentId", studentId],
@@ -170,7 +170,7 @@ router.get("/stopRequests", (req, res) => {
     );
     query = `SELECT * FROM STOPREQUEST WHERE ${
       requestStatus ? `requestStatus = '${requestStatus}' AND ` : ""
-    }rideId = (SELECT DISTINCT ID AS rideId FROM RIDE${queryConditions});`;
+    }rideId IN (SELECT DISTINCT ID AS rideId FROM RIDE${queryConditions});`;
   } else {
     const queryConditions = buildQueryConditions(
       ["rideId", rideId],
