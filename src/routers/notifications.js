@@ -23,12 +23,10 @@ router.get("/:id", (req, res) => {
 });
 
 router.patch("/:id", (req, res) => {
-    console.log(req.body);
     connection.query(
         `UPDATE NOTIFICATION SET name = ${req.body.name}, message = ${req.body.message} WHERE ID = ${req.body.studentId};`,
         function(error, results) {
             if (results) {
-                console.log(results);
                 res.send(200).json(results);
             } else console.error(error);
         }

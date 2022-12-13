@@ -13,8 +13,8 @@ router.get("/getAllChats/:id", (req, res) => {
       (SELECT Y.ID, firstName as driverFirstName, lastName as driverLastName, driverId, riderId, message, date FROM STUDENT JOIN
       (SELECT X.ID, X.studentId AS riderId, RIDE.studentId AS driverId, message, date FROM RIDE JOIN
       (SELECT CHAT.ID, rideId, CHAT.studentId, message, date FROM CHAT JOIN MESSAGE
-      ON CHAT.ID = MESSAGE.chatId ORDER BY date DESC) X
-      ON RIDE.ID = X.rideId WHERE RIDE.studentId = ${studentId} OR X.studentId = ${studentId} GROUP BY (ID)) Y
+      ON CHAT.ID = MESSAGE.chatId ORDER BY date DESC LIMIT 1) X
+      ON RIDE.ID = X.rideId WHERE RIDE.studentId = ${studentId} OR X.studentId = ${studentId}) Y
       ON STUDENT.ID = Y.driverId) Z
       ON STUDENT.ID = Z.riderId ORDER BY date DESC;`,
       function (error, results) {

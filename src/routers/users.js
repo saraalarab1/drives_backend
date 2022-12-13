@@ -91,7 +91,7 @@ router.post("/photo/:id", (req, res) => {
   });
 });
 
-router.post("/license/:id", upload.single("license"), (req, res) => {
+router.post("/license/:id", (req, res) => {
   const id = parseInt(req.params.id);
   var image = req.body;
 
@@ -101,7 +101,7 @@ router.post("/license/:id", upload.single("license"), (req, res) => {
     Bucket: "licensecard-db",
     ACL: "public-read",
     Key: req.params.id,
-    Body: req.file.buffer,
+    Body: image.uri,
   };
 
   s3bucket.upload(params, async (err, data) => {

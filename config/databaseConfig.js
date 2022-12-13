@@ -1,17 +1,18 @@
 import mysql from "mysql";
 
-var config = {
-  host: "sql8.freemysqlhosting.net",
-  user: "sql8581012",
-  password: "K55WARXsWg",
-  database: "sql8581012",
-};
 // var config = {
-//     host: 'localhost',
-//     user: 'groot',
-//     password: 'groot1234',
-//     database: 'drives'
-// }
+//   host: "sql8.freemysqlhosting.net",
+//   user: "sql8581012",
+//   password: "K55WARXsWg",
+//   database: "sql8581012",
+// };
+
+var config = {
+    host: 'localhost',
+    user: 'root',
+    password: 'root',
+    database: 'drives'
+}
 
 var connection = mysql.createConnection(config); //added the line
 connection.connect(function (err) {
