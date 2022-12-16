@@ -30,8 +30,6 @@ router.get("/", (req, res) => {
     minPricePerRider,
     maxPricePerRider,
     rideStatus,
-    orderBy,
-    descending,
   } = req.query;
 
   let minDateTime = undefined;
@@ -63,7 +61,6 @@ router.get("/", (req, res) => {
       : undefined
   );
 
-  queryConditions = orderQuery(queryConditions, orderBy, descending);
   connection.query(
     `SELECT * FROM RIDE${queryConditions};`,
     function (error, results) {
