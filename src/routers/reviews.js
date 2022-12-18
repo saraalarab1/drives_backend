@@ -13,7 +13,6 @@ const router = Router();
 
 router.post("/", (req, res) => {
   var par = req.body;
-  const now = new Date();
   const reviewDetails = {
     ...par,
     date: formatUTCDate(new Date()),
@@ -22,12 +21,12 @@ router.post("/", (req, res) => {
   const query = generateCreateQuery(data[0], [data[1]], "REVIEW");
   connection.query(query, function (error, results) {
     if (results) {
-      console.log(results);
+      res.status(200).json({ studentId: par.studentId });
     } else {
       console.error(error);
+      res.status(400).json("Error adding review.");
     }
   });
-  res.status(200).json("Added a review");
 });
 
 router.get("/", (req, res) => {
@@ -39,7 +38,7 @@ router.get("/", (req, res) => {
   var query = `SELECT * FROM REVIEW ${queryConditions} ORDER BY date`;
 
   if (req.query.studentId)
-    query = `SELECT REVIEW.ID as reviewId, REVIEW.*, STUDENT.* FROM REVIEW JOIN STUDENT ON REVIEW.studentId = STUDENT.ID WHERE REVIEW.studentID = ${req.query.studentId}`;
+    query = `SELECT R.ID as reviewId, R.*, S.firstName, S.lastName FROM REVIEW R, STUDENT S, RIDE D WHERE R.rideId = D.ID AND D.studentId = S.ID AND D.studentID = ${req.query.studentId}`;
   connection.query(`${query};`, function (error, results) {
     if (results) {
       if (results.length > 0) {
@@ -88,12 +87,12 @@ router.post("/comments", (req, res) => {
   const query = generateCreateQuery(data[0], [data[1]], "COMMENT");
   connection.query(query, function (error, results) {
     if (results) {
-      console.log(results);
+      res.status(200).json({ reviewId: par.reviewId });
     } else {
       console.error(error);
+      res.status(400).json("Error adding comment.");
     }
   });
-  res.status(200).json({ reviewId: par.reviewId });
 });
 
 router.get("/comments/:id", (req, res) => {
