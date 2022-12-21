@@ -29,6 +29,17 @@ router.post("/", (req, res) => {
   });
 });
 
+router.get("/overview/:studentId", (req, res) => {
+  const studentId = parseInt(req.params.studentId);
+  const query = `SELECT AVG(rating) AS average, COUNT(*) AS count FROM REVIEW JOIN RIDE
+                ON REVIEW.rideId = RIDE.ID WHERE RIDE.studentId = ${studentId}`;
+  connection.query(`${query};`, function (error, results) {
+    if (results) {
+      res.status(200).json(results.pop());
+    } else res.status(400).send("Error");
+  });
+});
+
 router.get("/", (req, res) => {
   var queryConditions = buildQueryConditions(
     ["ID", req.query.ID],
@@ -36,9 +47,8 @@ router.get("/", (req, res) => {
     ["rideID", req.query.rideId]
   );
   var query = `SELECT * FROM REVIEW ${queryConditions} ORDER BY date`;
-
   if (req.query.studentId)
-    query = `SELECT R.ID as reviewId, R.*, S.firstName, S.lastName FROM REVIEW R, STUDENT S, RIDE D WHERE R.rideId = D.ID AND D.studentId = S.ID AND D.studentID = ${req.query.studentId}`;
+    query = `SELECT R.ID as reviewId, R.*, S.firstName, S.lastName FROM REVIEW R, STUDENT S, RIDE D WHERE R.rideId = D.ID AND R.studentId = S.ID AND D.studentID = ${req.query.studentId} ORDER BY R.date DESC`;
   connection.query(`${query};`, function (error, results) {
     if (results) {
       if (results.length > 0) {
@@ -116,17 +126,6 @@ router.delete("/comments/:id", (req, res) => {
     }
   });
   res.status(200).json("Deleted stop request");
-});
-
-router.get("/overview/:studentId", (req, res) => {
-  const studentId = parseInt(req.params.studentId);
-  const query = `SELECT AVG(rating) AS average, COUNT(*) AS count FROM REVIEW JOIN RIDE
-                ON REVIEW.rideId = RIDE.ID WHERE RIDE.studentId = ${studentId}`;
-  connection.query(`${query};`, function (error, results) {
-    if (results) {
-      res.status(200).json(results.pop());
-    } else res.status(400).send("Error");
-  });
 });
 
 export default router;

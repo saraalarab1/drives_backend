@@ -159,6 +159,7 @@ router.get("/photo/:id", (req, res) => {
         res.status(400).send(e);
       }
     } else {
+      console.error(err)
       res.status(500);
     }
   });
